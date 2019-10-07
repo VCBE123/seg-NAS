@@ -1,2 +1,6 @@
 logdir
 __pycache__
+follicle
+logs
+*.idea
+*.json
