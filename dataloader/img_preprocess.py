@@ -31,7 +31,7 @@ class ImgAugTrans:
         seg_det = self.aug.to_deterministic()
         image = np.asarray(image)
         mask = np.asarray(mask)
-        mask = np.where(mask > 0, 1, mask)
+        # mask = np.where(mask > 0, 1, mask)
         aug_image = seg_det.augment_image(image)
         aug_mask = seg_det.augment_image(mask)
         aug_norm = self.normalize(aug_image)
