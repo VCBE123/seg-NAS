@@ -53,11 +53,13 @@ class AverageMeter(object):
 def get_dice(pred, mask, threshold=0.5):
     '''
     calculate dice coefficient
-    :param pred:
-    :param mask:
+    :param pred: tensor
+    :param mask:  tensor
     :param threshold:
     :return:
     '''
+    pred = pred.cpu().numpy()
+    mask = mask.cpu().numpy()
     pred = (pred > threshold).astype(int)
     iflaten = pred.flatten()
     tflaten = mask.flatten()

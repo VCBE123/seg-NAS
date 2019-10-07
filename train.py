@@ -12,20 +12,23 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import dice_loss, Unet
+from nas import Unet
 from dataloader import get_follicle
-from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint
+from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice
+# import multiprocessing   for debug
+# multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=12)
-    parser.add_argument('--learn_rate', type=float, default=1e-3)
+    parser.add_argument('--batch_size', type=int, default=36)
+    parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
+    parser.add_argument('--epochs', type=int, default=120)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='unet')
@@ -33,31 +36,34 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=2)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpu', default='0')
+    parser.add_argument('--gpus', default='3,4,2')
+    parser.add_argument('--accum', default=1,
+                        help='accumulate gradients for bigger batchsize')
     # args=parser.parse_args()
     return parser.parse_args()
 
 
 ARGS = get_parser()
-os.environ['cuda_visible_devices'] = ARGS.gpu
+os.environ['cuda_visible_devices'] = ARGS.gpus
 ARGS.save = '{}/train-{}-{}-{}'.format(ARGS.save,
                                        ARGS.debug, ARGS.arch, time.strftime("%y%m%d-%h%m%s"))
 
 create_exp_dir(ARGS.save, glob.glob('*.py')+glob.glob('*/*.py'))
 
 LOG_FORMAT = '%(asctime)s %(message)s'
-logging.basicConfig(stream=sys.stdout, level=logging.info,
-                    format=LOG_FORMAT, datefmt='%m/%d %i:%m:%s %p')
+logging.basicConfig(stream=sys.stdout, level=logging.INFO,
+                    format=LOG_FORMAT, datefmt='%m/%d %h:%m:%s %p')
 
 FH = logging.FileHandler(os.path.join(ARGS.save, 'log.txt'))
 FH.setFormatter(logging.Formatter(LOG_FORMAT))
-logging.getLogger().addhandler(FH)
+logging.getLogger().addHandler(FH)
 WRITER = SummaryWriter(log_dir=os.path.dirname(
-    logging.Logger.root.handlers[1].basefilename))
+    logging.Logger.root.handlers[1].baseFilename))
 
 
 def main():
     "train main"
+    os.environ['CUDA_VISIBLE_DEVICES'] = ARGS.gpus
     np.random.seed(ARGS.seed)
     cudnn.benchmark = True
     torch.manual_seed(ARGS.seed)
@@ -66,31 +72,31 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = Unet(1, 1)
+    model = Unet(3, 3)
     model = nn.DataParallel(model)
     model = model.cuda()
 
     logging.info("params size = %f m", count_parameters(model))
 
-    optimizer = torch.optim.sgd(model.parameters(
+    optimizer = torch.optim.SGD(model.parameters(
     ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
 
+    criterion = torch.nn.BCELoss().cuda()
     train_loader, val_loader = get_follicle(ARGS)
-    scheduler = torch.optim.lr_scheduler.steplr(optimizer, step_size=50)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50)
     best_dice = 0
 
     for epoch in range(ARGS.epochs):
         current_lr = scheduler.get_lr()[0]
         logging.info("epoch: %d lr %e", epoch, current_lr)
         epoch_start = time.time()
-        train_dice, train_loss = train(
-            train_loader, model, dice_loss, optimizer)
+        train_loss = train(
+            train_loader, model, criterion, optimizer)
 
-        WRITER.add_scalars('dice', {'train_dice': train_loader}, epoch)
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
-        logging.info("train_dice: %f", train_dice)
+        logging.info("train_loss: %f", train_loss)
 
-        valid_dice, valid_loss = infer(val_loader, model, dice_loss)
+        valid_dice, valid_loss = infer(val_loader, model, criterion)
         logging.info("valid_dice: %f", valid_dice)
         logging.info("valid_loss: %f", valid_loss)
 
@@ -116,12 +122,11 @@ def main():
 def train(train_loader, model, criterion, optimizer):
     "training func"
     objs = AverageMeter()
-    dicemeter = AverageMeter()
+    # dicemeter = AverageMeter()
     batch_time = AverageMeter()
 
     model.train()
     optimizer.zero_grad()
-    accum = ARGS.accum
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
@@ -129,18 +134,16 @@ def train(train_loader, model, criterion, optimizer):
 
         logits = model(inputs)
         loss = criterion(logits, target)
+        optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)
-        if step % accum == 0:
-            optimizer.step()
-            optimizer.zero_grad()
-        dice = dice_loss(logits, target)
+        optimizer.step()
         batch_size = inputs.size(0)
         batch_time.update(time.time()-b_start)
-        dicemeter.update(dice, batch_size)
-
-        objs.update(dice, batch_size)
-        if step % ARGS.report_freq == 0:
+        # dice=get_dice(logits,target)
+        # dicemeter.update(dice, batch_size)
+        objs.update(loss, batch_size)
+        if step % ARGS.report == 0:
             end_time = time.time()
             if step == 0:
                 duration = 0
@@ -148,10 +151,10 @@ def train(train_loader, model, criterion, optimizer):
             else:
                 duration = end_time-start_time
                 start_time = time.time()
-            logging.info('Train Step: %03d Loss: %e %f Duration: %ds BTime: %.3fs',
-                         step, objs.avg, dicemeter.avg, duration, batch_time.avg)
+            logging.info('Train Step: %03d Loss: %e  Duration: %ds BTime: %.3fs',
+                         step, objs.avg, duration, batch_time.avg)
 
-    return dicemeter.avg, objs.avg
+    return objs.avg
 
 
 def infer(valid_loader, model, criterion):
@@ -164,13 +167,14 @@ def infer(valid_loader, model, criterion):
         targets = targets.cuda()
         with torch.no_grad():
             logits = model(inputs)
-            dice = criterion(logits, targets)
+            loss = criterion(logits, targets)
+        dice = get_dice(logits, targets)
         batch_size = inputs.size(0)
 
-        objs.update(dice, batch_size)
+        objs.update(loss, batch_size)
         dicemeter.update(dice, batch_size)
 
-        if step % ARGS.report_freq == 0:
+        if step % ARGS.report == 0:
             end_time = time.time()
             if step == 0:
                 duration = 0

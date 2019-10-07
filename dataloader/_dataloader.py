@@ -4,7 +4,7 @@ load follice dataset in /data/follice
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import cv2
-from .img_preprocess import get_trans
+from .img_preprocess import ImgAugTrans
 
 
 class FollicleDataset(Dataset):
@@ -19,8 +19,10 @@ class FollicleDataset(Dataset):
         """
         self.txt = txt
         self.lines = open(self.txt, 'r').readlines()
-        self.images = [line.split(' ')[0] for line in self.lines]
-        self.labels = [line.split(' ')[1] for line in self.lines]
+        self.images = [
+            '/data/lir'+line.split(' ')[0].split('Measurement')[1].strip() for line in self.lines]
+        self.labels = [
+            '/data/lir'+line.split(' ')[1].split('Measurement')[1].strip() for line in self.lines]
         self.trans = transform
         print(len(self.images))
 
@@ -31,13 +33,14 @@ class FollicleDataset(Dataset):
         image = cv2.imread(self.images[index])
         label = cv2.imread(self.labels[index])
         if self.trans:
-            image, label = self.trans
+            image, label = self.trans(image, label)
         return image, label
 
 
 def get_follicle(args):
     "return trainloader,testloader"
-    train_trans, test_trans = get_trans()
+    train_trans = ImgAugTrans(input_size=384, crop_size=384)
+    test_trans = ImgAugTrans(input_size=384, crop_size=384)
 
     trainset = FollicleDataset('/data/follicle/train_all.txt', train_trans)
     testset = FollicleDataset('/data/follicle/eval.txt', test_trans)
@@ -50,3 +53,5 @@ def get_follicle(args):
 
 if __name__ == "__main__":
     DATASET = FollicleDataset('/data/follicle/train_all.txt')
+    # image,label=DATASET.__getitem__(0)
+    # print(label.size)
