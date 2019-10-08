@@ -15,8 +15,8 @@ import numpy as np
 from nas import Unet
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice
-# import multiprocessing
-# multiprocessing.set_start_method('spawn', True)
+import multiprocessing
+multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
@@ -36,7 +36,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=2)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='1,2,3')
+    parser.add_argument('--gpus', default='2,5,6')
     parser.add_argument('--accum', default=1,
                         help='accumulate gradients for bigger batchsize')
     # args=parser.parse_args()
@@ -81,7 +81,7 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(
     ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
 
-    criterion = torch.nn.CrossEntropyLoss().cuda()
+    criterion = torch.nn.BCELoss().cuda()
     train_loader, val_loader = get_follicle(ARGS)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50)
     best_dice = 0

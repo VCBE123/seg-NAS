@@ -54,6 +54,6 @@ class ImgAugTrans:
         # print(np.unique(aug_mask))
         mask = np.eye(self.num_classes)[aug_mask]
         aug_norm = self.normalize(aug_image)
-        aug_mask = self.totensor(mask).long()
+        aug_mask = self.totensor(mask).float()
         # print(np.unique(aug_mask.numpy()))
         return aug_norm, aug_mask
