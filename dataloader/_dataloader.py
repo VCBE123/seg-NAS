@@ -31,7 +31,7 @@ class FollicleDataset(Dataset):
 
     def __getitem__(self, index):
         image = cv2.imread(self.images[index])
-        label = cv2.imread(self.labels[index])
+        label = cv2.imread(self.labels[index], 0)
         if self.trans:
             image, label = self.trans(image, label)
         return image, label

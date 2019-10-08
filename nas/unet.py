@@ -119,7 +119,8 @@ class Unet(nn.Module):
         up_x2 = torch.cat((up_x2, x_1), dim=1)
         up_x2 = self.up_conv2(up_x2)
         out = self.up_conv1(up_x2)
-        out = torch.sigmoid(out)
+        # out = torch.softmax(out)
+        # out = torch.log_softmax(out)
         return out
 
 
