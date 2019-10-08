@@ -32,14 +32,15 @@ class ImgAugTrans:
         seg_det = self.aug.to_deterministic()
         image = np.asarray(image)
         mask = np.asarray(mask)
-        "one-hot encode"
-        print(mask.shape)
-        print(np.unique(mask))
+        #"one-hot encode"
+        # print(mask.shape)
+        # print(np.unique(mask))
         mask[mask == 128] = 1
         mask[mask == 255] = 2
         mask = np.eye(self.num_classes)[mask]
+        mask = mask.astype(np.uint8)
         aug_image = seg_det.augment_image(image)
         aug_mask = seg_det.augment_image(mask)
         aug_norm = self.normalize(aug_image)
-        aug_mask = self.totensor(mask)
+        aug_mask = self.totensor(aug_mask)
         return aug_norm, aug_mask

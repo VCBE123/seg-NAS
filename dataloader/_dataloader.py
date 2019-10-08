@@ -23,7 +23,7 @@ class FollicleDataset(Dataset):
             '/data/lir'+line.split('..')[1].strip() for line in self.lines]
         self.labels = [line.replace('image', 'label') for line in self.images]
         self.trans = transform
-        print(len(self.images))
+        # print(len(self.images))
 
     def __len__(self):
         return len(self.images)
