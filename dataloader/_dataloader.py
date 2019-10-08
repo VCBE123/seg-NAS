@@ -20,9 +20,8 @@ class FollicleDataset(Dataset):
         self.txt = txt
         self.lines = open(self.txt, 'r').readlines()
         self.images = [
-            '/data/lir'+line.split(' ')[0].split('Measurement')[1].strip() for line in self.lines]
-        self.labels = [
-            '/data/lir'+line.split(' ')[1].split('Measurement')[1].strip() for line in self.lines]
+            '/data/lir'+line.split('..')[1].strip() for line in self.lines]
+        self.labels = [line.replace('image', 'label') for line in self.images]
         self.trans = transform
         print(len(self.images))
 
@@ -42,8 +41,8 @@ def get_follicle(args):
     train_trans = ImgAugTrans(input_size=384, crop_size=384)
     test_trans = ImgAugTrans(input_size=384, crop_size=384)
 
-    trainset = FollicleDataset('/data/follicle/train_all.txt', train_trans)
-    testset = FollicleDataset('/data/follicle/eval.txt', test_trans)
+    trainset = FollicleDataset('/data/follicle/train_image.txt', train_trans)
+    testset = FollicleDataset('/data/follicle/eval_image.txt', test_trans)
     trainloader = DataLoader(trainset, batch_size=args.batch_size,
                              shuffle=True, num_workers=args.workers, pin_memory=True)
     testloader = DataLoader(
@@ -52,6 +51,6 @@ def get_follicle(args):
 
 
 if __name__ == "__main__":
-    DATASET = FollicleDataset('/data/follicle/train_all.txt')
+    DATASET = FollicleDataset('/data/follicle/train_image.txt')
     # image,label=DATASET.__getitem__(0)
     # print(label.size)

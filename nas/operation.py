@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+__all__ = ['OPS', 'ReLUConvBN', 'FactorizedReduce']
 OPS = {
     'none': lambda C, stride, affine: Zero(stride),
     'avg_pool_3x3': lambda C, stride, affine: nn.AvgPool2d(3, stride=stride, padding=1, count_include_pad=False),
@@ -45,6 +46,7 @@ class ReLUConvBN(nn.Module):
 
 class DilConv(nn.Module):
     "dilation conv"
+
     def __init__(self, C_in, C_out, kernel_size, stride, padding, dilation, affine=True):
         super(DilConv, self).__init__()
         self.ops = nn.Sequential(
@@ -61,6 +63,7 @@ class DilConv(nn.Module):
 
 class SepConv(nn.Module):
     "sepwise conv"
+
     def __init__(self, C_in, C_out, kernel_size, stride, padding, affine=True):
         super(SepConv, self).__init__()
         self.ops = nn.Sequential(
@@ -131,7 +134,7 @@ class Identity(nn.Module):
     "Identity"
 
     # def __init__(self):
-        # super(Identity, self).__init__()
+    # super(Identity, self).__init__()
 
     def forward(self, x):
         return x
@@ -150,9 +153,11 @@ class Zero(nn.Module):
         widths //= self.stride
         if x.is_cuda:
             with torch.cuda.device(x.get_device()):
-                padding = torch.cuda.FloatTensor(batches, channels, heights, widths).fill_(0)
+                padding = torch.cuda.FloatTensor(
+                    batches, channels, heights, widths).fill_(0)
         else:
-            padding = torch.FloatTensor(batches, channels, heights, widths).fill_(0)
+            padding = torch.FloatTensor(
+                batches, channels, heights, widths).fill_(0)
         return padding
 
 
