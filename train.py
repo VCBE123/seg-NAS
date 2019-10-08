@@ -81,7 +81,7 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(
     ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
 
-    criterion = torch.nn.BCELoss().cuda()
+    criterion = torch.nn.CrossEntropyLoss().cuda()
     train_loader, val_loader = get_follicle(ARGS)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50)
     best_dice = 0

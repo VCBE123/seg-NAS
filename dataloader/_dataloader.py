@@ -38,8 +38,8 @@ class FollicleDataset(Dataset):
 
 def get_follicle(args):
     "return trainloader,testloader"
-    train_trans = ImgAugTrans(input_size=384, crop_size=384)
-    test_trans = ImgAugTrans(input_size=384, crop_size=384)
+    train_trans = ImgAugTrans(crop_size=384)
+    test_trans = ImgAugTrans(crop_size=384)
 
     trainset = FollicleDataset('/data/follicle/train_image.txt', train_trans)
     testset = FollicleDataset('/data/follicle/eval_image.txt', test_trans)

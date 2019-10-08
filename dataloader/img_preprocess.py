@@ -1,7 +1,12 @@
 " for the dataset preprocess transform"
-import torchvision.transforms as tvF
-from imgaug import augmenters as iaa
 import numpy as np
+import torchvision.transforms as tvF
+import imgaug as ia
+from imgaug import augmenters as iaa
+from imgaug.augmentables.segmaps import SegmentationMapsOnImage
+
+
+ia.seed(109)
 
 
 def get_trans():
@@ -20,27 +25,35 @@ NORMALIZE = tvF.Normalize(mean=[0.275, 0.278, 0.284],
 class ImgAugTrans:
     "augment image and the mask"
 
-    def __init__(self, input_size, crop_size, num_classes=3):
+    def __init__(self, crop_size=384, num_classes=3):
         self.aug = iaa.Sequential([
-            iaa.Scale({"height": input_size, "width": input_size}),
-            iaa.Crop(px=input_size-crop_size)])
+            iaa.Resize({"height": crop_size, "width": crop_size}),
+            iaa.Dropout([0.05, 0.2]),
+            iaa.Sharpen((0.0, 1.0)),
+            iaa.Affine(rotate=(-20, 20)),
+            iaa.ElasticTransformation(alpha=50, sigma=5)])
+
         self.normalize = tvF.Compose([tvF.ToTensor(), NORMALIZE])
         self.totensor = tvF.Compose([tvF.ToTensor()])
         self.num_classes = num_classes
 
     def __call__(self, image, mask):
-        seg_det = self.aug.to_deterministic()
         image = np.asarray(image)
-        mask = np.asarray(mask)
+        mask = np.asarray(mask, dtype=np.int32)
+
+        # imgaug
+        mask = SegmentationMapsOnImage(mask, shape=image.shape)
+        aug_image, aug_mask = self.aug(image=image, segmentation_maps=mask)
+
         #"one-hot encode"
         # print(mask.shape)
         # print(np.unique(mask))
-        mask[mask == 128] = 1
-        mask[mask == 255] = 2
-        mask = np.eye(self.num_classes)[mask]
-        mask = mask.astype(np.uint8)
-        aug_image = seg_det.augment_image(image)
-        aug_mask = seg_det.augment_image(mask)
+        # mask[mask == 128] = 1
+        # mask[mask == 255] = 2
+        aug_mask = aug_mask.get_arr()
+        # print(np.unique(aug_mask))
+        mask = np.eye(self.num_classes)[aug_mask]
         aug_norm = self.normalize(aug_image)
-        aug_mask = self.totensor(aug_mask)
+        aug_mask = self.totensor(mask).long()
+        # print(np.unique(aug_mask.numpy()))
         return aug_norm, aug_mask

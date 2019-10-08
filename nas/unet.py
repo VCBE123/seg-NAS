@@ -120,7 +120,7 @@ class Unet(nn.Module):
         up_x2 = self.up_conv2(up_x2)
         out = self.up_conv1(up_x2)
         # out = torch.softmax(out)   For crossentropy loss function
-        out = torch.log_softmax(out)  # For BCELoss
+        # out = torch.log_softmax(out, 1)  # For BCELoss
         return out
 
 
