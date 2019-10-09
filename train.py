@@ -15,8 +15,8 @@ import numpy as np
 from nas import Unet
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice
-import multiprocessing
-multiprocessing.set_start_method('spawn', True)
+# import multiprocessing
+# multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
@@ -34,7 +34,7 @@ def get_parser():
     parser.add_argument('--arch', default='unet')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
-    parser.add_argument('--classes', default=2)
+    parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
     parser.add_argument('--gpus', default='2,5,6')
     parser.add_argument('--accum', default=1,
@@ -115,7 +115,7 @@ def main():
                        message="epoch:{} best_dice:{}".format(epoch, best_dice))
             finally:
                 pass
-        save_checkpoint({'epoch': epoch+1, 'state_dice': model.state_dict(),
+        save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
                          'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
 
 

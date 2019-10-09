@@ -48,12 +48,8 @@ class ImgAugTrans:
         #"one-hot encode"
         # print(mask.shape)
         # print(np.unique(mask))
-        # mask[mask == 128] = 1
-        # mask[mask == 255] = 2
         aug_mask = aug_mask.get_arr()
-        # print(np.unique(aug_mask))
         mask = np.eye(self.num_classes)[aug_mask]
         aug_norm = self.normalize(aug_image)
         aug_mask = self.totensor(mask).float()
-        # print(np.unique(aug_mask.numpy()))
         return aug_norm, aug_mask
