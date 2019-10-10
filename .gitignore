@@ -5,3 +5,5 @@ follicle
 logs
 *.idea
 *.json
+.vscode
+*.tar
