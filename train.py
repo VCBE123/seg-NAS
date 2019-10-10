@@ -36,14 +36,14 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0')
+    parser.add_argument('--gpus', default='0,1,2')
     parser.add_argument('--accum', default=1,
                         help='accumulate gradients for bigger batchsize')
     return parser.parse_args()
 
 
 ARGS = get_parser()
-os.environ['cuda_visible_devices'] = ARGS.gpus
+os.environ['CUDA_VISIBLE_DEVICES'] = ARGS.gpus
 ARGS.save = '{}/train-{}-{}-{}'.format(ARGS.save,
                                        ARGS.debug, ARGS.arch, time.strftime("%y%m%d-%h%m%s"))
 
@@ -62,7 +62,6 @@ WRITER = SummaryWriter(log_dir=os.path.dirname(
 
 def main():
     "train main"
-    os.environ['CUDA_VISIBLE_DEVICES'] = ARGS.gpus
     np.random.seed(ARGS.seed)
     cudnn.benchmark = True
     torch.manual_seed(ARGS.seed)
