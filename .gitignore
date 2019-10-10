@@ -1,0 +1,9 @@
+logdir
+__pycache__
+**__pycache__**
+follicle
+logs
+*.idea
+*.json
+.vscode
+*.tar
