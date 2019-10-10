@@ -28,7 +28,7 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=120)
+    parser.add_argument('--epochs', type=int, default=250)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='unet')
@@ -39,7 +39,6 @@ def get_parser():
     parser.add_argument('--gpus', default='2,5,6')
     parser.add_argument('--accum', default=1,
                         help='accumulate gradients for bigger batchsize')
-    # args=parser.parse_args()
     return parser.parse_args()
 
 
@@ -123,6 +122,7 @@ def main():
                 pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
                          'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
+    logging.info("Best finaly overay dice: %e", best_dice)
 
 
 def train(train_loader, model, criterion, optimizer):
