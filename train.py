@@ -105,6 +105,7 @@ def main():
 
         epoch_duration = time.time()-epoch_start
         logging.info("epoch time: %ds.", epoch_duration)
+        scheduler.step()
 
         is_best = False
         if valid_dice > best_dice:
@@ -160,7 +161,8 @@ def train(train_loader, model, criterion, optimizer):
 def infer(valid_loader, model, criterion):
     "validate func"
     objs = AverageMeter()
-    dicemeter = AverageMeter()
+    dice_overay_meter = AverageMeter()
+    dice_follicle_meter = AverageMeter()
     model.eval()
     for step, (inputs, targets) in enumerate(valid_loader):
         inputs = inputs.cuda()
@@ -168,12 +170,13 @@ def infer(valid_loader, model, criterion):
         with torch.no_grad():
             logits = model(inputs)
             loss = criterion(logits, targets)
-        dice = get_dice(logits, targets)
+        dice_follicle = get_dice_follicle(logits, targets)
+        dice_overay = get_dice_overay(logits, targets)
         batch_size = inputs.size(0)
 
         objs.update(loss, batch_size)
-        dicemeter.update(dice, batch_size)
-
+        dice_follicle_meter.update(dice_follicle, batch_size)
+        dice_overay_meter.update(dice_overay, batch_size)
         if step % ARGS.report == 0:
             end_time = time.time()
             if step == 0:
@@ -182,9 +185,9 @@ def infer(valid_loader, model, criterion):
             else:
                 duration = end_time-start_time
                 start_time = time.time()
-            logging.info("Valid Step: %03d Objs: %e Dice: %e Duration: %ds",
-                         step, objs.avg, dicemeter.avg, duration)
-    return dicemeter.avg, objs.avg,
+            logging.info("Valid Step: %03d Objs: %e Follicle_Dice: %e Overay_Dice: %e Duration: %ds",
+                         step, objs.avg, dice_follicle_meter.avg, dice_overay_meter.avg, duration)
+    return dice_follicle_meter.avg, dice_overay_meter.avg, objs.avg,
 
 
 if __name__ == '__main__':

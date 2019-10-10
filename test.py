@@ -1,9 +1,9 @@
 
 "train progress"
 import os
-import cv2
 import time
 import argparse
+import cv2
 import tqdm
 import torch
 import torch.nn as nn
@@ -12,9 +12,9 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from nas import Unet
 from dataloader import get_follicle
-from utils import AverageMeter, get_dice
-import multiprocessing
-multiprocessing.set_start_method('spawn', True)
+from utils import AverageMeter, get_dice_overay, get_dice_follicle
+# import multiprocessing
+# multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
@@ -49,14 +49,16 @@ def main():
 
     _, val_loader = get_follicle(ARGS)
     epoch_start = time.time()
-    valid_dice = infer(val_loader, model)
+    valid_dice_follicle, valid_dice_overay = infer(val_loader, model)
     epoch_duration = time.time()-epoch_start
-    print("valid_dice:{} duration: {}s".format(valid_dice, epoch_duration))
+    print("valid_dice_follicle:{} vald_dice_overay:{} duration: {}s".format(
+        valid_dice_follicle, valid_dice_overay, epoch_duration))
 
 
 def infer(valid_loader, model):
     "validate func"
-    dicemeter = AverageMeter()
+    dice_overay_meter = AverageMeter()
+    dice_follicle_meter = AverageMeter()
     model.eval()
     count = 0
     for inputs, targets in tqdm.tqdm(valid_loader):
@@ -65,20 +67,19 @@ def infer(valid_loader, model):
         with torch.no_grad():
             logits = model(inputs)
 
-        dice = get_dice(logits, targets)
+        dice_follicle = get_dice_follicle(logits, targets)
+        dice_overay = get_dice_overay(logits, targets)
         pred = logits.cpu().numpy()
-        om = np.argmax(pred.squeeze(), axis=0)
-        om[om == 0] = 0
-        om[om == 1] = 128
-        om[om == 2] = 255
-        print(om.shape)
-        print(np.unique(om))
+        segmap = np.argmax(pred.squeeze(), axis=0)
+        segmap[segmap == 1] = 128
+        segmap[segmap == 2] = 255
 
-        cv2.imwrite('logs/{}.png'.format(count), om)
+        cv2.imwrite('logs/{}.png'.format(count), segmap)
         count += 1
         batch_size = inputs.size(0)
-        dicemeter.update(dice, batch_size)
-    return dicemeter.avg
+        dice_follicle_meter.update(dice_follicle, batch_size)
+        dice_overay_meter.update(dice_overay, batch_size)
+    return dice_follicle_meter.avg, dice_overay_meter.avg
 
 
 if __name__ == '__main__':

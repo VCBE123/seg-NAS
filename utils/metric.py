@@ -1,5 +1,5 @@
 " avergeMeter,bestMeter,dice"
-# import numpy as np
+import numpy as np
 
 
 class BestMeter(object):
@@ -50,17 +50,40 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def get_dice(pred, mask ):
+def get_dice_follicle(pred, mask):
     '''
-    calculate dice coefficient
+    calculate dice coefficient of follicle
     :param pred: tensor
     :param mask:  tensor
     :param threshold:
     :return:
     '''
     pred = pred.cpu().numpy()
+    pred = np.argmax(pred, 1)
+    pred = np.where(pred > 1, 1, 0)
     mask = mask.cpu().numpy()
-    pred = (pred > threshold).astype(int)
+    mask = np.argmax(mask, 1)
+    mask = np.where(mask > 1, 1, 0)
+    iflaten = pred.flatten()
+    tflaten = mask.flatten()
+    intersection = (iflaten * tflaten).sum()
+    return (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
+
+
+def get_dice_overay(pred, mask):
+    '''
+    calculate dice coefficient of overay
+    :param pred: tensor
+    :param mask:  tensor
+    :param threshold:
+    :return:
+    '''
+    pred = pred.cpu().numpy()
+    pred = np.argmax(pred, 1)
+    pred = np.clip(pred, 0, 1)
+    mask = mask.cpu().numpy()
+    mask = np.argmax(mask, 1)
+    mask = np.clip(mask, 0, 1)
     iflaten = pred.flatten()
     tflaten = mask.flatten()
     intersection = (iflaten * tflaten).sum()
