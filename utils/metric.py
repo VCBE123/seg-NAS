@@ -50,7 +50,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def get_dice(pred, mask, threshold=0.5):
+def get_dice(pred, mask ):
     '''
     calculate dice coefficient
     :param pred: tensor
