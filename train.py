@@ -96,11 +96,16 @@ def main():
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
-        valid_dice_follicle, valid_dice_overay, valid_loss = infer(val_loader, model, criterion)
-        logging.info("valid_dice: %f", valid_dice)
+        valid_dice_follicle, valid_dice_overay, valid_loss = infer(
+            val_loader, model, criterion)
+        logging.info("valid_dice_follicle: %f valid_dice_overay: %f",
+                     valid_dice_follicle, valid_dice_overay)
         logging.info("valid_loss: %f", valid_loss)
 
-        WRITER.add_scalars('dice', {'valid_dice': valid_dice}, epoch)
+        WRITER.add_scalars(
+            'dice', {'valid_dice_overay': valid_dice_overay}, epoch)
+        WRITER.add_scalars(
+            'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
         WRITER.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
 
         epoch_duration = time.time()-epoch_start

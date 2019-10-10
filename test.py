@@ -74,7 +74,7 @@ def infer(valid_loader, model):
         segmap[segmap == 1] = 128
         segmap[segmap == 2] = 255
 
-        cv2.imwrite('logs/{}.png'.format(count), segmap)
+        cv2.imwrite('logs/fig/{}.png'.format(count), segmap)
         count += 1
         batch_size = inputs.size(0)
         dice_follicle_meter.update(dice_follicle, batch_size)
