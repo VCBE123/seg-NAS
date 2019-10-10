@@ -13,21 +13,21 @@ def dice_loss(inputs, target):
     return 1-((2.*intersection+smooth)/(iflaten.sum()+tflaten.sum()+smooth))
 
 
-class Weight_DiceLoss(nn.Module):
+class WeightDiceLoss(nn.Module):
     "Calculate the weighted dice loss"
 
     def __init__(self, smooth=1):
-        super(Weight_DiceLoss, self).__init__()
+        super(WeightDiceLoss, self).__init__()
         self.smooth = smooth
 
     def forward(self, output, target):
-        batch, classes, W, H = target.size()
-        count = torch.full((batch, classes), W*H).cuda()
-        weight = torch.sum(target.view(batch, classes, W*H), dim=-1)
+        batch, classes, weight, height = target.size()
+        count = torch.full((batch, classes), weight*height).cuda()
+        weight = torch.sum(target.view(batch, classes, weight*height), dim=-1)
         weight = count.div(weight)
 
-        output = output.view(batch, classes, W*H)
-        target = target.view(batch, classes, W*H)
+        output = output.view(batch, classes, weight*height)
+        target = target.view(batch, classes, weight*height)
 
         intersection = (output*target).sum(dim=-1)
         loss = 1-((2.*intersection+self.smooth)) / \
