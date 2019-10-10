@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from nas import Unet
 from dataloader import get_follicle
-from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice
+from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_overay
 # import multiprocessing
 # multiprocessing.set_start_method('spawn', True)
 
@@ -96,7 +96,7 @@ def main():
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
-        valid_dice, valid_loss = infer(val_loader, model, criterion)
+        valid_dice_follicle, valid_dice_overay, valid_loss = infer(val_loader, model, criterion)
         logging.info("valid_dice: %f", valid_dice)
         logging.info("valid_loss: %f", valid_loss)
 
@@ -108,8 +108,8 @@ def main():
         scheduler.step()
 
         is_best = False
-        if valid_dice > best_dice:
-            best_dice = valid_dice
+        if valid_dice_overay > best_dice:
+            best_dice = valid_dice_overay
             is_best = True
             try:
                 notice('validation-unet',
@@ -141,8 +141,6 @@ def train(train_loader, model, criterion, optimizer):
         optimizer.step()
         batch_size = inputs.size(0)
         batch_time.update(time.time()-b_start)
-        # dice=get_dice(logits,target)
-        # dicemeter.update(dice, batch_size)
         objs.update(loss, batch_size)
         if step % ARGS.report == 0:
             end_time = time.time()
