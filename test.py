@@ -45,7 +45,7 @@ def main():
     model = Unet(3, 3)
     model = nn.DataParallel(model)
     model = model.cuda()
-    model.load_state_dict(torch.load('model_best.pth.tar')['state_dice'])
+    model.load_state_dict(torch.load('model_best.pth.tar')['state_dict'])
 
     _, val_loader = get_follicle(ARGS)
     epoch_start = time.time()
