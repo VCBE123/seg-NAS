@@ -16,10 +16,11 @@ def dice_loss(inputs, target):
 class WeightDiceLoss(nn.Module):
     "Calculate the weighted dice loss"
 
-    def __init__(self, smooth=1, weight=False):
+    def __init__(self, smooth=1, weight=False, ignore=True):
         super(WeightDiceLoss, self).__init__()
         self.smooth = smooth
         self.weight = weight
+        self.ignore = ignore
 
     def forward(self, output, target):
         batch, classes, width, height = target.size()
@@ -37,5 +38,6 @@ class WeightDiceLoss(nn.Module):
             (output.sum(dim=-1)+target.sum(dim=-1)+self.smooth)
         if self.weight:
             loss *= weight
-
+        if self.ignore: # ignore the background
+            loss = loss[:, [1, 2]]
         return loss.sum()
