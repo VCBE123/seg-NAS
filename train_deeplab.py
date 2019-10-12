@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import Unet, WeightDiceLoss
+from nas import WeightDiceLoss, DeepLab
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_overay
 # import multiprocessing
@@ -21,22 +21,22 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_c
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train unet')
-    parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser = argparse.ArgumentParser(description='train deeplab')
+    parser.add_argument('--workers', type=int, default=2)
+    parser.add_argument('--batch_size', type=int, default=36)
+    parser.add_argument('--learning_rate', type=float, default=1e-2)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=250)
+    parser.add_argument('--epochs', type=int, default=120)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='unet')
+    parser.add_argument('--arch', default='deeplab')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='6,7')
+    parser.add_argument('--gpus', default='3,4,5')
     parser.add_argument('--accum', default=1,
                         help='accumulate gradients for bigger batchsize')
     return parser.parse_args()
@@ -70,7 +70,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = Unet(3, 3)
+    model = DeepLab(3, 3)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -116,7 +116,7 @@ def main():
             best_dice = valid_dice_overay
             is_best = True
             try:
-                notice('validation-unet',
+                notice('validation-deeplabv3',
                        message="epoch:{} best_dice:{}".format(epoch, best_dice))
             finally:
                 pass
