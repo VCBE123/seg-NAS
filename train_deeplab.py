@@ -12,31 +12,33 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import Unet, WeightDiceLoss
+from nas import WeightDiceLoss, DeepLab
 from dataloader import get_follicle
-from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
+from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_overay
 # import multiprocessing
 # multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train unet')
-    parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser = argparse.ArgumentParser(description='train deeplab')
+    parser.add_argument('--workers', type=int, default=2)
+    parser.add_argument('--batch_size', type=int, default=36)
+    parser.add_argument('--learning_rate', type=float, default=1e-2)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=250)
+    parser.add_argument('--epochs', type=int, default=120)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='unet')
+    parser.add_argument('--arch', default='deeplab')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,2,6')
+    parser.add_argument('--gpus', default='3,4,5')
+    parser.add_argument('--accum', default=1,
+                        help='accumulate gradients for bigger batchsize')
     return parser.parse_args()
 
 
@@ -68,7 +70,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = Unet(3, 3)
+    model = DeepLab(3, 3)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -93,14 +95,14 @@ def main():
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
-        valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
+        valid_dice_follicle, valid_dice_overay, valid_loss = infer(
             val_loader, model, criterion)
-        logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
-                     valid_dice_follicle, valid_dice_ovary)
+        logging.info("valid_dice_follicle: %f valid_dice_overay: %f",
+                     valid_dice_follicle, valid_dice_overay)
         logging.info("valid_loss: %f", valid_loss)
 
         WRITER.add_scalars(
-            'dice', {'valid_dice_ovary': valid_dice_ovary}, epoch)
+            'dice', {'valid_dice_overay': valid_dice_overay}, epoch)
         WRITER.add_scalars(
             'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
         WRITER.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
@@ -110,17 +112,17 @@ def main():
         scheduler.step()
 
         is_best = False
-        if valid_dice_ovary > best_dice:
-            best_dice = valid_dice_ovary
+        if valid_dice_overay > best_dice:
+            best_dice = valid_dice_overay
             is_best = True
             try:
-                notice('validation-unet',
+                notice('validation-deeplabv3',
                        message="epoch:{} best_dice:{}".format(epoch, best_dice))
             finally:
                 pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
                          'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
-    logging.info("Best finaly ovary dice: %e", best_dice)
+    logging.info("Best finaly overay dice: %e", best_dice)
 
 
 def train(train_loader, model, criterion, optimizer):
@@ -162,7 +164,7 @@ def train(train_loader, model, criterion, optimizer):
 def infer(valid_loader, model, criterion):
     "validate func"
     objs = AverageMeter()
-    dice_ovary_meter = AverageMeter()
+    dice_overay_meter = AverageMeter()
     dice_follicle_meter = AverageMeter()
     model.eval()
     for step, (inputs, targets) in enumerate(valid_loader):
@@ -172,12 +174,12 @@ def infer(valid_loader, model, criterion):
             logits = model(inputs)
             loss = criterion(logits, targets)
         dice_follicle = get_dice_follicle(logits, targets)
-        dice_ovary = get_dice_ovary(logits, targets)
+        dice_overay = get_dice_overay(logits, targets)
         batch_size = inputs.size(0)
 
         objs.update(loss, batch_size)
         dice_follicle_meter.update(dice_follicle, batch_size)
-        dice_ovary_meter.update(dice_ovary, batch_size)
+        dice_overay_meter.update(dice_overay, batch_size)
         if step % ARGS.report == 0:
             end_time = time.time()
             if step == 0:
@@ -187,8 +189,8 @@ def infer(valid_loader, model, criterion):
                 duration = end_time-start_time
                 start_time = time.time()
             logging.info("Valid Step: %03d Objs: %e Follicle_Dice: %e Overay_Dice: %e Duration: %ds",
-                         step, objs.avg, dice_follicle_meter.avg, dice_ovary_meter.avg, duration)
-    return dice_follicle_meter.avg, dice_ovary_meter.avg, objs.avg,
+                         step, objs.avg, dice_follicle_meter.avg, dice_overay_meter.avg, duration)
+    return dice_follicle_meter.avg, dice_overay_meter.avg, objs.avg,
 
 
 if __name__ == '__main__':
