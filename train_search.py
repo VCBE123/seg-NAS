@@ -24,27 +24,28 @@ def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=6)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser.add_argument('--learning_rate_min', type=float, default=1e-6)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=250)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--train_portain', default=0.7,
+    parser.add_argument('--train_portion', default=0.7,
                         help='the partion for update weights')
     parser.add_argument('--arch', default='nasunet')
     parser.add_argument('--arch_learning_rate',type=float, default=6e-4)
-    parser.add_argument('--arch_weight_decay',type=float, default=)
+    parser.add_argument('--arch_weight_decay',type=float, default=1e-3)
 
-    parser.agg_argument('--inital_channel',type=int, default=12)
+    parser.add_argument('--inital_channel',type=int, default=8)
     parser.add_argument('--layers',type=int ,default=12)
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,2,6')
+    parser.add_argument('--gpus', default='0,1,2')
     return parser.parse_args()
 
 
@@ -84,9 +85,9 @@ def main():
     split = int(np.floor(ARGS.train_portion*num_train))
 
     train_loader = torch.utils.data.DataLoader(traindata, batch_size=ARGS.batch_size, sampler=torch.utils.data.sampler.SubsetRandomSampler(
-        indices[:split]), pin_memory=True, num_workers=ARGS.num_workers)
+        indices[:split]), pin_memory=True, num_workers=ARGS.workers)
     valid_loader = torch.utils.data.DataLoader(traindata, batch_size=ARGS.batch_size, sampler=torch.utils.data.sampler.SubsetRandomSampler(
-        indices[split:]), pin_memory=True, num_workers=ARGS.num_workers)
+        indices[split:]), pin_memory=True, num_workers=ARGS.workers)
 
     criterion = WeightDiceLoss().cuda()
     switches = []
@@ -99,7 +100,7 @@ def main():
 
 
 
-    model = NASUnet(ARGS.inital_channel, ARGS.num_classes,ARGS.layers, criterion, 4,switches_normal=switches_norm,switches_reduce=switches_redu)
+    model = NASUnet(ARGS.inital_channel, ARGS.classes,ARGS.layers, criterion, 4,switches_normal=switches_norm,switches_reduce=switches_redu)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -112,9 +113,9 @@ def main():
 
     optimizer = torch.optim.SGD(model.parameters(
     ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
-
-    optimizer_arch= torch.optim.Adam(model.module.arch_parameters(),lr=ARGS.arch_learning_rate,betas=(0.5,0.999), weight_decay=args.arch_weight_decay)
-    scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,ARGS.epochs,eta_min=args.learning_rate_min))
+    
+    optimizer_arch= torch.optim.Adam(model.module.arch_parameters(),lr=ARGS.arch_learning_rate,betas=(0.5,0.999), weight_decay=ARGS.arch_weight_decay)
+    scheduler=torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,ARGS.epochs,eta_min=ARGS.learning_rate_min)
 
 
     # criterion = torch.nn.BCELoss().cuda()
