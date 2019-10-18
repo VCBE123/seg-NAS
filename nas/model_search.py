@@ -175,8 +175,7 @@ class NASUnet(nn.Module):
             self.cells_decode += [cell]
             c_pp, c_p = c_p, c_curr*multiplier
 
-        
-        self.outputlayer=nn.Conv2d(32,num_classes,1,1)
+        self.outputlayer = nn.Conv2d(32, num_classes, 1, 1)
         self._initialize_alphas()
 
     def forward(self, inputs):
@@ -213,8 +212,9 @@ class NASUnet(nn.Module):
                 # feature=F.interpolate(middle_feature[self.layer-i-1],scale_factor=2.,mode='bilinear',align_corners=True)
                 feature = middle_feature[self.layer-i-1]
                 s0 = s0+feature
-        output=self.outputlayer(s1)
-        output = F.interpolate(output, (W, H), mode='bilinear', align_corners=True)
+        output = self.outputlayer(s1)
+        output = F.interpolate(
+            output, (W, H), mode='bilinear', align_corners=True)
         output = F.softmax(output, dim=1)
         return output
 
