@@ -36,7 +36,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='3,4,5')
+    parser.add_argument('--gpus', default='0,1,2')
     parser.add_argument('--accum', default=1,
                         help='accumulate gradients for bigger batchsize')
     return parser.parse_args()
