@@ -70,9 +70,9 @@ def get_dice_follicle(pred, mask):
     return (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
 
 
-def get_dice_overay(pred, mask):
+def get_dice_ovary(pred, mask):
     '''
-    calculate dice coefficient of overay
+    calculate dice coefficient of ovary
     :param pred: tensor
     :param mask:  tensor
     :param threshold:

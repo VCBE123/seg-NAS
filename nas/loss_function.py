@@ -18,6 +18,7 @@ class WeightDiceLoss(nn.Module):
 
     def __init__(self, smooth=1, weight=False, ignore=True):
         super(WeightDiceLoss, self).__init__()
+        self.weight=weight
         self.smooth = smooth
         self.weight = weight
         self.ignore = ignore
@@ -33,6 +34,8 @@ class WeightDiceLoss(nn.Module):
         output = output.view(batch, classes, width*height)
         target = target.view(batch, classes, width*height)
 
+        output = output.view(batch, classes, width*height)
+        target = target.view(batch, classes, width*height)
         intersection = (output*target).sum(dim=-1)
         loss = 1-((2.*intersection+self.smooth)) / \
             (output.sum(dim=-1)+target.sum(dim=-1)+self.smooth)
