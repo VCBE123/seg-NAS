@@ -51,7 +51,7 @@ class ASSP(nn.Module):
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True))
 
-        self.conv1 = nn.Conv2d(256*4, 256, 1, bias=False)
+        self.conv1 = nn.Conv2d(256*5, 256, 1, bias=False)
         self.bn1 = nn.BatchNorm2d(256)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(0.5)
@@ -65,7 +65,7 @@ class ASSP(nn.Module):
         x4 = self.aspp4(x)
         x5 = F.interpolate(self.avg_pool(x),size=x.size()[2:],mode='bilinear',align_corners=True)
 
-        x = self.conv1(torch.cat((x1, x2, x3, x4), dim=1))
+        x = self.conv1(torch.cat((x1, x2, x3, x4, x5), dim=1))
         x = self.bn1(x)
         x = self.dropout(self.relu(x))
 

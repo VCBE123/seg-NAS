@@ -216,7 +216,7 @@ def train(train_loader, valid_loader, model, network_params, criterion, optimize
             loss_arch = criterion(logits, target_search)
             loss_arch.backward()
             nn.utils.clip_grad_norm_(
-                model.modules.arch_parameters(), ARGS.grad_clip)
+                model.module.arch_parameters(), ARGS.grad_clip)
             optimizer_arch.step()
 
         logits = model(inputs)
