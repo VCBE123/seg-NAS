@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.utils
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
+from tensorboardX import SummaryWriter
 import copy
 from nas import NASUnet, WeightDiceLoss, PRIMITIVES
 from dataloader import FollicleDataset, ImgAugTrans
@@ -72,7 +73,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO,
 fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
-
+writer = SummaryWriter(log_dir=os.path.dirname(
+    logging.Logger.root.handlers[1].baseFilename))
 
 def main():
     if not torch.cuda.is_available():
@@ -135,6 +137,7 @@ def main():
         model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         4, switches_normal=switches_normal, switches_reduce=switches_reduce)
 
+        model=nn.DataParallel(model)
         model = model.cuda()
         logging.info("param size = %fMB", count_parameters(model))
         network_params = []
@@ -146,7 +149,7 @@ def main():
             args.learning_rate,
             momentum=args.momentum,
             weight_decay=args.weight_decay)
-        optimizer_a = torch.optim.Adam(model.arch_parameters(),
+        optimizer_a = torch.optim.Adam(model.module.arch_parameters(),
                                        lr=args.arch_learning_rate, betas=(0.5, 0.999), weight_decay=args.arch_weight_decay)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer, float(args.epochs), eta_min=args.learning_rate_min)
@@ -168,16 +171,16 @@ def main():
             # validation
             if epochs - epoch < 5:
                 valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
-                valid_loader, model, criterion)
-            logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
-                        valid_dice_follicle, valid_dice_ovary)
-            logging.info("valid_loss: %f", valid_loss)
+                valid_queue, model, criterion)
+                logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
+                            valid_dice_follicle, valid_dice_ovary)
+                logging.info("valid_loss: %f", valid_loss)
 
-            WRITER.add_scalars(
-                'dice', {'valid_dice_ovary': valid_dice_ovary}, epoch)
-            WRITER.add_scalars(
-                'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
-            WRITER.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
+                writer.add_scalars(
+                    'dice', {'valid_dice_ovary': valid_dice_ovary}, epoch)
+                writer.add_scalars(
+                    'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
+                writer.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
             if valid_dice_ovary > best_dice:
                 best_dice = valid_dice_ovary
                 is_best = True
@@ -304,7 +307,7 @@ def train(train_queue, valid_queue, model, network_params, criterion, optimizer,
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
-        input = input.cuda()
+        input = input.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
         b_start = time.time()
         if train_arch:
