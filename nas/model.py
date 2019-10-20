@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
-from operation import FactorizedReduce, ReLUConvBN, OPS
-from genotype import  s3
+from .operation import FactorizedReduce, ReLUConvBN, OPS
+from .genotype import  s3
 
 class Cell(nn.Module):
 

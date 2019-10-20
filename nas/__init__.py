@@ -3,5 +3,6 @@ from .loss_function import dice_loss, WeightDiceLoss
 from .unet import Unet, init_weithts
 from .deeplab3 import DeepLab
 from .model_search import  NASUnet
-from .genotype import PRIMITIVES, Genotype
+from .genotype import PRIMITIVES, Genotype, s3
 from .RayNet import RayNet
+from .model import NASseg
