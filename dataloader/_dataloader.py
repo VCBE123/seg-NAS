@@ -51,5 +51,6 @@ def get_follicle(args):
 
 if __name__ == "__main__":
     DATASET = FollicleDataset('/data/follicle/train_image.txt')
-    # image,label=DATASET.__getitem__(0)
-    # print(label.size)
+    image,label=DATASET.__getitem__(0)
+    print(label.size)
+    
