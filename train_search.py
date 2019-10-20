@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 
 import numpy as np
 from nas import NASUnet, WeightDiceLoss, PRIMITIVES
-from dataloader import get_follicle, FollicleDataset, ImgAugTrans
+from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
 # multiprocessing.set_start_method('spawn', True)
@@ -79,7 +79,7 @@ def main():
     logging.info("using gpus: %d", num_gpus)
 
     train_trans = ImgAugTrans(384)
-    traindata = FollicleDataset('/data/follicle/train.txt', train_trans)
+    traindata = FollicleDataset('/data/follicle/eval.txt', train_trans)
     num_train = len(traindata)
     indices = list(range(num_train))
     split = int(np.floor(ARGS.train_portion*num_train))
@@ -118,7 +118,6 @@ def main():
 
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(ARGS)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50)
     best_dice = 0
 
@@ -136,9 +135,9 @@ def main():
 
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
-        if ARGS.epochs-epoch<5:
+        if ARGS.epochs-epoch<2:
             valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
-                val_loader, model, criterion)
+                valid_loader, model, criterion)
             logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
                         valid_dice_follicle, valid_dice_ovary)
             logging.info("valid_loss: %f", valid_loss)

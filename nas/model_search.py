@@ -235,12 +235,6 @@ class NASUnet(nn.Module):
         "return the arch-parameters"
         return self._arch_parameters
 
-class NASRaynet(nn.Module):
-    "adopt from Raynet"
-    def __init__(self, encode='mixnet_xl',pretrained=True)
-
-
-
 
 
 if __name__ == "__main__":
