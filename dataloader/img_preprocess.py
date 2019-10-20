@@ -4,7 +4,7 @@ import torchvision.transforms as tvF
 import imgaug as ia
 from imgaug import augmenters as iaa
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
-
+import matplotlib.pyplot as plt
 
 ia.seed(109)
 
@@ -50,6 +50,13 @@ class ImgAugTrans:
         # print(np.unique(mask))
         aug_mask = aug_mask.get_arr()
         mask = np.eye(self.num_classes)[aug_mask]
+        
+
+        #
+        # aug_image=aug_image.cpu.numpy()
+        # plt.imshow(aug_image)
+        # plt.show()
+        
         aug_norm = self.normalize(aug_image)
         aug_mask = self.totensor(mask).float()
         return aug_norm, aug_mask
