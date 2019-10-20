@@ -197,7 +197,7 @@ def main():
             switches_normal_2 = copy.deepcopy(switches_normal)
             switches_reduce_2 = copy.deepcopy(switches_reduce)
         # drop operations with low architecture weights
-        arch_param = model.arch_parameters()
+        arch_param = model.module.arch_parameters()
         normal_prob = F.softmax(arch_param[0], dim=sm_dim).data.cpu().numpy()
         for i in range(14):
             idxs = []
