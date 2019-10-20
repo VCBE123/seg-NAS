@@ -19,7 +19,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_di
 parser = argparse.ArgumentParser("p-search nas-unet")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
-parser.add_argument('--batch_size', type=int, default=6, help='batch size')
+parser.add_argument('--batch_size', type=int, default=25, help='batch size')
 parser.add_argument('--learning_rate', type=float,
                     default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
@@ -29,7 +29,7 @@ parser.add_argument('--weight_decay', type=float,
                     default=3e-4, help='weight decay')
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
-parser.add_argument('--gpus', type=str, default='0,1,2,3,4,5', help='GPU device id')
+parser.add_argument('--gpus', type=str, default='0,1,2,3,4', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -160,18 +160,32 @@ def main():
             epoch_start = time.time()
             # training
             if epoch < eps_no_arch:
-                train_acc, train_obj = train(
-                    train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=False)
+                train_obj = train( train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=False)
             else:
-                train_acc, train_obj = train(
-                    train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=True)
-            logging.info('Train_acc %f', train_acc)
+                train_obj = train( train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=True)
             epoch_duration = time.time() - epoch_start
             logging.info('Epoch time: %ds', epoch_duration)
             # validation
             if epochs - epoch < 5:
-                valid_acc, valid_obj = infer(valid_queue, model, criterion)
-                logging.info('Valid_acc %f', valid_acc)
+                valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
+                valid_loader, model, criterion)
+            logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
+                        valid_dice_follicle, valid_dice_ovary)
+            logging.info("valid_loss: %f", valid_loss)
+
+            WRITER.add_scalars(
+                'dice', {'valid_dice_ovary': valid_dice_ovary}, epoch)
+            WRITER.add_scalars(
+                'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
+            WRITER.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
+            if valid_dice_ovary > best_dice:
+                best_dice = valid_dice_ovary
+                is_best = True
+                try:
+                    notice('validation-nasunet',
+                        message="epoch:{} best_dice:{}".format(epoch, best_dice))
+                finally:
+                    pass
         torch.save(model, os.path.join(args.save, 'weights.pt'))
         print('------Dropping %d paths------' % num_to_drop[sp])
         # Save switches info for s-c refinement.

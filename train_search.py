@@ -10,12 +10,13 @@ import sys
 from tensorboardX import SummaryWriter
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASUnet, WeightDiceLoss, PRIMITIVES
+from nas import NASUnet, WeightDiceLoss, PRIMITIVES, Genotype
 from dataloader import FollicleDataset, ImgAugTrans
-from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
+from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 # import multiprocessing
 # multiprocessing.set_start_method('spawn', True)
 
