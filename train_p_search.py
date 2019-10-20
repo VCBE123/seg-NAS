@@ -181,14 +181,14 @@ def main():
                 writer.add_scalars(
                     'dice', {'valid_dice_follicle': valid_dice_follicle}, epoch)
                 writer.add_scalars('loss', {'valid_loss': valid_loss}, epoch)
-            if valid_dice_ovary > best_dice:
-                best_dice = valid_dice_ovary
-                is_best = True
-                try:
-                    notice('validation-nasunet',
-                        message="epoch:{} best_dice:{}".format(epoch, best_dice))
-                finally:
-                    pass
+                if valid_dice_ovary > best_dice:
+                    best_dice = valid_dice_ovary
+                    is_best = True
+                    try:
+                        notice('validation-nasunet',
+                            message="epoch:{} best_dice:{}".format(epoch, best_dice))
+                    finally:
+                        pass
         torch.save(model, os.path.join(args.save, 'weights.pt'))
         print('------Dropping %d paths------' % num_to_drop[sp])
         # Save switches info for s-c refinement.
