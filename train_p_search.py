@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 import copy
-from nas import NASUnet, WeightDiceLoss, PRIMITIVES
+from nas import NASUnet, WeightDiceLoss, PRIMITIVES, Genotype
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str, default='0,1,2,3,4', help='GPU device id')
-parser.add_argument('--epochs', type=int, default=25,
+parser.add_argument('--epochs', type=int, default=1,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
                     default=8, help='num of init channels')
@@ -131,7 +131,7 @@ def main():
         drop_rate = args.dropout_rate
     else:
         drop_rate = [0.0, 0.0, 0.0]
-    eps_no_archs = [10, 10, 10]
+    eps_no_archs = [0, 0, 0]
     for sp in range(len(num_to_keep)):
 
         model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
@@ -156,6 +156,7 @@ def main():
         sm_dim = -1
         epochs = args.epochs
         eps_no_arch = eps_no_archs[sp]
+        best_dice=0
         for epoch in range(epochs):
             scheduler.step()
             lr = scheduler.get_lr()[0]
@@ -324,7 +325,7 @@ def train(train_queue, valid_queue, model, network_params, criterion, optimizer,
             logits = model(input_search)
             loss_a = criterion(logits, target_search)
             loss_a.backward()
-            nn.utils.clip_grad_norm_(model.arch_parameters(), args.grad_clip)
+            nn.utils.clip_grad_norm_(model.module.arch_parameters(), args.grad_clip)
             optimizer_a.step()
 
         optimizer.zero_grad()
@@ -354,7 +355,7 @@ def train(train_queue, valid_queue, model, network_params, criterion, optimizer,
 
 
 def infer(valid_queue, model, criterion):
-    objs = AverageMeter
+    objs = AverageMeter()
     dice_ovary_meter = AverageMeter()
     dice_follicle_meter = AverageMeter()
     model.eval()
