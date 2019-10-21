@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 import copy
-from nas import NASUnet, WeightDiceLoss, PRIMITIVES, Genotype
+from nas import NASUnet, WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
@@ -119,8 +119,8 @@ def main():
     switches_normal = copy.deepcopy(switches)
     switches_reduce = copy.deepcopy(switches)
     # To be moved to args
-    num_to_keep = [7, 4, 2, 1]
-    num_to_drop = [4, 3, 2, 1]
+    num_to_keep = [6, 4, 2, 1]
+    num_to_drop = [3, 2, 2, 1]
     if len(args.add_width) == 3:
         add_width = args.add_width
     else:
@@ -133,11 +133,12 @@ def main():
         drop_rate = args.dropout_rate
     else:
         drop_rate = [0.0, 0.0, 0.0]
-    eps_no_archs = [0, 0, 0, 0]
+    eps_no_archs = [5, 5, 5, 5]
     for sp in range(len(num_to_keep)):
 
-        model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
-                        4, switches_normal=switches_normal, switches_reduce=switches_reduce)
+        # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
+                        # 4, switches_normal=switches_normal, switches_reduce=switches_reduce)
+        model = NASRayNet(switch_normal=switches_normal, switch_expansion=switches_reduce)
 
         model = nn.DataParallel(model)
         model = model.cuda()

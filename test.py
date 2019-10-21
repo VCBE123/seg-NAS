@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import RayNet
+from nas import RayNet_v0
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle
 # import multiprocessing
@@ -26,7 +26,7 @@ def get_parser():
     parser.add_argument('--arch', default='unet')
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='1')
+    parser.add_argument('--gpus', default='4')
     return parser.parse_args()
 
 
@@ -42,7 +42,7 @@ def main():
     torch.manual_seed(ARGS.seed)
     torch.cuda.manual_seed(ARGS.seed)
 
-    model = RayNet()
+    model = RayNet_v0()
     model = nn.DataParallel(model)
     model = model.cuda()
     model.load_state_dict(torch.load('model_best.pth.tar')['state_dict'])

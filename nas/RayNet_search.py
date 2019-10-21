@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from genotype import PRIMITIVES
-from operation import OPS, ReLUConvBN, FactorizedReduce
-from Mix import mixnet_xl
+from .genotype import PRIMITIVES
+from .operation import OPS, ReLUConvBN, FactorizedReduce
+from .Mix import mixnet_xl
 
 
 def initialize_weights(*nnmodels):
@@ -116,7 +116,7 @@ class MixedOp(nn.Module):
 
     def forward(self, x, weights):
         # Fixme debug on cpu
-        return sum(w*operation(x) for w, operation in zip(weights, self.m_op))
+        return sum(w.gpu()*operation(x.gpu()) for w, operation in zip(weights, self.m_op))
 
 
 class CellNormal(nn.Module):
