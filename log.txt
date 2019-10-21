@@ -8,3 +8,47 @@ out param:0.001542
 up4 param:0.0
 pre_forward encode th-node:
 max_memory_allocated: 108.37 memory_allocated: 108.37
+after_forward encode th-node:
+max_memory_allocated: 1454.95 memory_allocated: 1454.95
+pre_forward low_conv th-node:
+max_memory_allocated: 1454.95 memory_allocated: 1454.95
+after_forward low_conv th-node:
+max_memory_allocated: 1490.96 memory_allocated: 1490.96
+pre_forward aspp th-node:
+max_memory_allocated: 1490.96 memory_allocated: 1490.96
+after_forward aspp th-node:
+max_memory_allocated: 1496.66 memory_allocated: 1496.38
+pre_forward up8 th-node:
+max_memory_allocated: 1496.66 memory_allocated: 1496.38
+after_forward up8 th-node:
+max_memory_allocated: 1514.38 memory_allocated: 1514.38
+pre_forward outconv1 th-node:
+max_memory_allocated: 1550.40 memory_allocated: 1550.38
+after_forward outconv1 th-node:
+max_memory_allocated: 1622.38 memory_allocated: 1622.38
+pre_forward outconv2 th-node:
+max_memory_allocated: 1622.38 memory_allocated: 1622.38
+after_forward outconv2 th-node:
+max_memory_allocated: 1694.39 memory_allocated: 1694.39
+pre_forward out th-node:
+max_memory_allocated: 1694.39 memory_allocated: 1694.39
+after_forward out th-node:
+max_memory_allocated: 1694.81 memory_allocated: 1694.81
+pre_forward up4 th-node:
+max_memory_allocated: 1694.81 memory_allocated: 1694.81
+after_forward up4 th-node:
+max_memory_allocated: 1698.18 memory_allocated: 1698.18
+after_backward up4 th-node:
+max_memory_allocated: 1701.56 memory_allocated: 1686.85
+after_backward out th-node:
+max_memory_allocated: 1701.56 memory_allocated: 1683.69
+after_backward outconv2 th-node:
+max_memory_allocated: 1754.85 memory_allocated: 1754.85
+after_backward outconv1 th-node:
+max_memory_allocated: 1889.85 memory_allocated: 1691.85
+after_backward up8 th-node:
+max_memory_allocated: 1889.85 memory_allocated: 1557.13
+after_backward aspp th-node:
+max_memory_allocated: 1889.85 memory_allocated: 1557.41
+after_backward low_conv th-node:
+max_memory_allocated: 1889.85 memory_allocated: 1618.12
