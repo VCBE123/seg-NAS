@@ -198,7 +198,7 @@ class RayNet(nn.Module):
 
         low_feat = self.low_conv(middle_feature[0])
 
-        aspp_out = self.aspp(middle_feature[1])
+        aspp_out = self.aspp(middle_feature[-1])
         up_aspp = self.up8(aspp_out)
 
         cat = torch.cat([low_feat, up_aspp], dim=1)
