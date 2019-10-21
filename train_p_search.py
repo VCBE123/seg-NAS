@@ -231,7 +231,7 @@ def main():
         logging_switches(switches_reduce)
 
         if sp == len(num_to_keep) - 1:
-            arch_param = model.arch_parameters()
+            arch_param = model.module.arch_parameters()
             normal_prob = F.softmax(
                 arch_param[0], dim=sm_dim).data.cpu().numpy()
             reduce_prob = F.softmax(

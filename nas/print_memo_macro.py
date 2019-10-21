@@ -1,5 +1,5 @@
 import sys
-from RayNet import RayNet
+from RayNet import RayNet_v0
 import torch
 import os
 import torch.nn as nn
@@ -45,7 +45,7 @@ def count_parameters(model):
 
 device = torch.device('cuda')
 Criterion = nn.BCELoss().cuda()
-net = RayNet()
+net = RayNet_v0()
 net = net.cuda()
 
 # register("encode", net.encode)

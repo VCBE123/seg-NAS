@@ -2,7 +2,7 @@ import timm
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from inspect import isfunction
 
 def initialize_weights(*nnmodels):
     "initial with kaiming"
@@ -72,6 +72,10 @@ class ASSP(nn.Module):
         return x
 
 
+
+
+
+
 class SepConv(nn.Module):
     "sepwise conv"
 
@@ -94,6 +98,86 @@ class SepConv(nn.Module):
         return self.ops(x)
 
 
+
+class ConvBlock(nn.Module):
+    """
+    Standard convolution block with Batch normalization and ReLU/ReLU6 activation.
+
+    Parameters:
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+    kernel_size : int or tuple/list of 2 int
+        Convolution window size.
+    stride : int or tuple/list of 2 int
+        Strides of the convolution.
+    padding : int or tuple/list of 2 int
+        Padding value for convolution layer.
+    dilation : int or tuple/list of 2 int, default 1
+        Dilation value for convolution layer.
+    groups : int, default 1
+        Number of groups.
+    bias : bool, default False
+        Whether the layer uses a bias vector.
+    bn_eps : float, default 1e-5
+        Small float added to variance in Batch norm.
+    activation : function or str or None, default nn.ReLU(inplace=True)
+        Activation function or name of activation function.
+    activate : bool, default True
+        Whether activate the convolution block.
+    """
+
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride,
+                 padding,
+                 dilation=1,
+                 groups=1,
+                 bias=False,
+                 bn_eps=1e-5,
+                 activation=(lambda: nn.ReLU(inplace=True)),
+                 activate=True):
+        super(ConvBlock, self).__init__()
+        self.activate = activate
+
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+            groups=groups,
+            bias=bias)
+        self.bn = nn.BatchNorm2d(
+            num_features=out_channels,
+            eps=bn_eps)
+        if self.activate:
+            assert (activation is not None)
+            if isfunction(activation):
+                self.activ = activation()
+            elif isinstance(activation, str):
+                if activation == "relu":
+                    self.activ = nn.ReLU(inplace=True)
+                elif activation == "relu6":
+                    self.activ = nn.ReLU6(inplace=True)
+                else:
+                    raise NotImplementedError()
+            else:
+                self.activ = activation
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        if self.activate:
+            x = self.activ(x)
+        return x
+
+
 class RayNet(nn.Module):
     "adopt from gao ray"
     def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
@@ -107,6 +191,40 @@ class RayNet(nn.Module):
         self.outconv1 = SepConv(512, 512, 3, 1, 1)
         self.outconv2 = SepConv(512, 512, 3, 1, 1)
         self.out = SepConv(512, num_classes, 1, 1, 0)
+        self.up4 = nn.Upsample(
+            scale_factor=4, mode='bilinear', align_corners=True)
+
+    def forward(self, inputs):
+        _, middle_feature = self.encode(inputs)
+
+        low_feat = self.low_conv(middle_feature[0])
+
+        aspp_out = self.aspp(middle_feature[1])
+        up_aspp = self.up8(aspp_out)
+
+        cat = torch.cat([low_feat, up_aspp], dim=1)
+        out = self.outconv1(cat)
+        out = self.outconv2(out)
+        out = self.out(out)
+        out = self.up4(out)
+        out = torch.softmax(out, 1)
+        return out
+
+
+
+class RayNet_v0(nn.Module):
+    "adopt from gao ray"
+    def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
+        super(RayNet_v0, self).__init__()
+        self.encode = timm.create_model(
+            encode, pretrained=pretrained, num_classes=num_classes)
+        self.aspp = ASSP(in_channels=1536, output_stride=8)
+        self.low_conv =ConvBlock(48, 256, 1, 1, 0)
+        self.up8 = nn.Upsample(
+            scale_factor=8, mode='bilinear', align_corners=True)
+        self.outconv1 = ConvBlock(512, 512, 3, 1, 1)
+        self.outconv2 =ConvBlock(512, 512, 3, 1, 1)
+        self.out =ConvBlock(512, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
             scale_factor=4, mode='bilinear', align_corners=True)
 

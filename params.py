@@ -1,5 +1,4 @@
-import timm
 from utils import count_parameters
-
-m=timm.create_model('mixnet_xl',pretrained=True,num_classes=3)
+from nas import RayNet_v0
+m=RayNet_v0()
 print(count_parameters(m))
