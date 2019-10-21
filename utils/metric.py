@@ -60,10 +60,10 @@ def get_dice_follicle(pred, mask):
     '''
     pred = pred.cpu().numpy()
     pred = np.argmax(pred, 1)
-    pred = np.where(pred > 1, 1, 0)
+    pred[pred == 2] = 0
     mask = mask.cpu().numpy()
     mask = np.argmax(mask, 1)
-    mask = np.where(mask > 1, 1, 0)
+    mask[mask == 2] = 0
     iflaten = pred.flatten()
     tflaten = mask.flatten()
     intersection = (iflaten * tflaten).sum()

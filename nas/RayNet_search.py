@@ -126,6 +126,37 @@ class RayNet(nn.Module):
         out = torch.softmax(out, 1)
         return out
 
+class NASRayNet(nn.Module):
+    "adopt from gao ray"
+    def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
+        super(NASNet, self).__init__()
+        self.encode = timm.create_model(
+            encode, pretrained=pretrained, num_classes=num_classes)
+        self.aspp = ASSP(in_channels=1536, output_stride=8)
+        self.low_conv = SepConv(48, 256, 1, 1, 0)
+        self.up8 = nn.Upsample(
+            scale_factor=8, mode='bilinear', align_corners=True)
+        self.outconv1 = SepConv(512, 512, 3, 1, 1)
+        self.outconv2 = SepConv(512, 512, 3, 1, 1)
+        self.out = SepConv(512, num_classes, 1, 1, 0)
+        self.up4 = nn.Upsample(
+            scale_factor=4, mode='bilinear', align_corners=True)
+
+    def forward(self, inputs):
+        _, middle_feature = self.encode(inputs)
+
+        low_feat = self.low_conv(middle_feature[0])
+
+        aspp_out = self.aspp(middle_feature[1])
+        up_aspp = self.up8(aspp_out)
+
+        cat = torch.cat([low_feat, up_aspp], dim=1)
+        out = self.outconv1(cat)
+        out = self.outconv2(out)
+        out = self.out(out)
+        out = self.up4(out)
+        out = torch.softmax(out, 1)
+        return out
 
 if __name__ == '__main__':
     # m = RayNet()
