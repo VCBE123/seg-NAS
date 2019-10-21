@@ -30,7 +30,8 @@ parser.add_argument('--weight_decay', type=float,
                     default=3e-4, help='weight decay')
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
-parser.add_argument('--gpus', type=str, default='0,1,2,3,4', help='GPU device id')
+parser.add_argument('--gpus', type=str,
+                    default='0,1,2,3,4', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=1,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -75,6 +76,7 @@ fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 writer = SummaryWriter(log_dir=os.path.dirname(
     logging.Logger.root.handlers[1].baseFilename))
+
 
 def main():
     if not torch.cuda.is_available():
@@ -131,13 +133,13 @@ def main():
         drop_rate = args.dropout_rate
     else:
         drop_rate = [0.0, 0.0, 0.0]
-    eps_no_archs = [0, 0, 0]
+    eps_no_archs = [0, 0, 0, 0]
     for sp in range(len(num_to_keep)):
 
         model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         4, switches_normal=switches_normal, switches_reduce=switches_reduce)
 
-        model=nn.DataParallel(model)
+        model = nn.DataParallel(model)
         model = model.cuda()
         logging.info("param size = %fMB", count_parameters(model))
         network_params = []
@@ -156,7 +158,7 @@ def main():
         sm_dim = -1
         epochs = args.epochs
         eps_no_arch = eps_no_archs[sp]
-        best_dice=0
+        best_dice = 0
         for epoch in range(epochs):
             scheduler.step()
             lr = scheduler.get_lr()[0]
@@ -164,17 +166,19 @@ def main():
             epoch_start = time.time()
             # training
             if epoch < eps_no_arch:
-                train_obj = train( train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=False)
+                train_obj = train(train_queue, valid_queue, model, network_params,
+                                  criterion, optimizer, optimizer_a, lr, train_arch=False)
             else:
-                train_obj = train( train_queue, valid_queue, model, network_params, criterion, optimizer, optimizer_a, lr, train_arch=True)
+                train_obj = train(train_queue, valid_queue, model, network_params,
+                                  criterion, optimizer, optimizer_a, lr, train_arch=True)
             epoch_duration = time.time() - epoch_start
             logging.info('Epoch time: %ds', epoch_duration)
             # validation
             if epochs - epoch < 5:
                 valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
-                valid_queue, model, criterion)
+                    valid_queue, model, criterion)
                 logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
-                            valid_dice_follicle, valid_dice_ovary)
+                             valid_dice_follicle, valid_dice_ovary)
                 logging.info("valid_loss: %f", valid_loss)
 
                 writer.add_scalars(
@@ -187,7 +191,7 @@ def main():
                     is_best = True
                     try:
                         notice('validation-nasunet',
-                            message="epoch:{} best_dice:{}".format(epoch, best_dice))
+                               message="epoch:{} best_dice:{}".format(epoch, best_dice))
                     finally:
                         pass
         torch.save(model, os.path.join(args.save, 'weights.pt'))
@@ -292,9 +296,8 @@ def main():
                 logging.info('Number of skip-connect: %d', max_sk)
                 genotype = parse_network(switches_normal, switches_reduce)
                 logging.info(genotype)
-    
 
-    try: 
+    try:
         notice('finish search nasunet', message="epoch:{}".format(epoch))
     finally:
         pass
@@ -325,7 +328,8 @@ def train(train_queue, valid_queue, model, network_params, criterion, optimizer,
             logits = model(input_search)
             loss_a = criterion(logits, target_search)
             loss_a.backward()
-            nn.utils.clip_grad_norm_(model.module.arch_parameters(), args.grad_clip)
+            nn.utils.clip_grad_norm_(
+                model.module.arch_parameters(), args.grad_clip)
             optimizer_a.step()
 
         optimizer.zero_grad()

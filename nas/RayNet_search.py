@@ -133,6 +133,9 @@ class NASRayNet(nn.Module):
         self.encode = timm.create_model(
             encode, pretrained=pretrained, num_classes=num_classes)
         self.aspp = ASSP(in_channels=1536, output_stride=8)
+
+
+
         self.low_conv = SepConv(48, 256, 1, 1, 0)
         self.up8 = nn.Upsample(
             scale_factor=8, mode='bilinear', align_corners=True)
@@ -141,7 +144,7 @@ class NASRayNet(nn.Module):
         self.out = SepConv(512, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
             scale_factor=4, mode='bilinear', align_corners=True)
-
+        
     def forward(self, inputs):
         _, middle_feature = self.encode(inputs)
 
