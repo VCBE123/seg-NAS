@@ -68,7 +68,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model =RayNet()
+    model = RayNet()
     model = nn.DataParallel(model)
     model = model.cuda()
 

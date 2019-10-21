@@ -856,7 +856,7 @@ class GenEfficientNet(nn.Module):
         x = self.bn1(x)
         x = self.act_fn(x, inplace=True)
         # modefied by lirui vcbe123@gmail.com
-        catch_layer=[1]
+        catch_layer=[1,2,3]
         out=[]
         for i,l in  enumerate(self.blocks):
             x=l(x)

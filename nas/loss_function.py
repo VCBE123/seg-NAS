@@ -18,7 +18,7 @@ class WeightDiceLoss(nn.Module):
 
     def __init__(self, smooth=1, weight=False, ignore=True):
         super(WeightDiceLoss, self).__init__()
-        self.weight=weight
+        self.weight = weight
         self.smooth = smooth
         self.weight = weight
         self.ignore = ignore
@@ -41,6 +41,6 @@ class WeightDiceLoss(nn.Module):
             (output.sum(dim=-1)+target.sum(dim=-1)+self.smooth)
         if self.weight:
             loss *= weight
-        if self.ignore: # ignore the background
+        if self.ignore:  # ignore the background
             loss = loss[:, [1, 2]]
         return loss.sum()
