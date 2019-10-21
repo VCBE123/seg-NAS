@@ -25,7 +25,7 @@ NORMALIZE = tvF.Normalize(mean=[0.275, 0.278, 0.284],
 class ImgAugTrans:
     "augment image and the mask"
 
-    def __init__(self, crop_size=384, num_classes=3):
+    def __init__(self, crop_size=384, num_classes=3, aug=True):
         self.aug = iaa.Sequential([
             iaa.Resize({"height": crop_size, "width": crop_size}),
             iaa.Dropout([0.05, 0.2]),
@@ -36,20 +36,22 @@ class ImgAugTrans:
         self.normalize = tvF.Compose([tvF.ToTensor(), NORMALIZE])
         self.totensor = tvF.Compose([tvF.ToTensor()])
         self.num_classes = num_classes
+        self.aug=aug
 
     def __call__(self, image, mask):
         image = np.asarray(image)
         mask = np.asarray(mask, dtype=np.int32)
 
         # imgaug
-        mask = SegmentationMapsOnImage(mask, shape=image.shape)
-        aug_image, aug_mask = self.aug(image=image, segmentation_maps=mask)
+        if self.aug:
+            mask = SegmentationMapsOnImage(mask, shape=image.shape)
+            image, aug_mask = self.aug(image=image, segmentation_maps=mask)
 
         #"one-hot encode"
         # print(mask.shape)
         # print(np.unique(mask))
-        aug_mask = aug_mask.get_arr()
-        mask = np.eye(self.num_classes)[aug_mask]
+            mask = aug_mask.get_arr()
+        mask = np.eye(self.num_classes)[mask]
         
 
         #
@@ -57,6 +59,6 @@ class ImgAugTrans:
         # plt.imshow(aug_image)
         # plt.show()
         
-        aug_norm = self.normalize(aug_image)
-        aug_mask = self.totensor(mask).float()
-        return aug_norm, aug_mask
+        image_norm = self.normalize(image)
+        mask = self.totensor(mask).float()
+        return image_norm, mask
