@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from inspect import isfunction
-
+from nas.Mix import  mixnet_xl
 def initialize_weights(*nnmodels):
     "initial with kaiming"
     for model in nnmodels:
@@ -180,11 +180,10 @@ class ConvBlock(nn.Module):
 
 class RayNet(nn.Module):
     "adopt from gao ray"
-    def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
+    def __init__(self, pretrained=True, num_classes=3):
         super(RayNet, self).__init__()
-        self.encode = timm.create_model(
-            encode, pretrained=pretrained, num_classes=num_classes)
-        self.aspp = ASSP(in_channels=1536, output_stride=8)
+        self.encode = mixnet_xl(pretrained=pretrained,num_classes=num_classes,head_conv=None)
+        self.aspp = ASSP(in_channels=320, output_stride=8)
         self.low_conv = SepConv(48, 256, 1, 1, 0)
         self.up8 = nn.Upsample(
             scale_factor=8, mode='bilinear', align_corners=True)
@@ -195,7 +194,7 @@ class RayNet(nn.Module):
             scale_factor=4, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
-        _, middle_feature = self.encode(inputs)
+        _, middle_feature = self.encode.forward_features(inputs)
 
         low_feat = self.low_conv(middle_feature[0])
 

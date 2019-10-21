@@ -1340,7 +1340,7 @@ def _gen_mixnet_m(channel_multiplier=1.0, depth_multiplier=1.0, num_classes=1000
         _decode_arch_def(arch_def, depth_multiplier=depth_multiplier, depth_trunc='round'),
         num_classes=num_classes,
         stem_size=24,
-        num_features=1536, #1536   modified by lirui
+        num_features=320, #1536   modified by lirui
         channel_multiplier=channel_multiplier,
         bn_args=_resolve_bn_args(kwargs),
         act_fn=F.relu,
