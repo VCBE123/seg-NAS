@@ -129,7 +129,7 @@ class RayNet(nn.Module):
 class NASRayNet(nn.Module):
     "adopt from gao ray"
     def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
-        super(NASNet, self).__init__()
+        super(NASRayNet, self).__init__()
         self.encode = timm.create_model(
             encode, pretrained=pretrained, num_classes=num_classes)
         self.aspp = ASSP(in_channels=1536, output_stride=8)
