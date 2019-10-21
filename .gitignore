@@ -7,3 +7,5 @@ logs
 *.json
 .vscode
 *.tar
+*log*
+*png
