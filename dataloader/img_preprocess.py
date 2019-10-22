@@ -33,32 +33,32 @@ class ImgAugTrans:
             iaa.Affine(rotate=(-20, 20)),
             iaa.ElasticTransformation(alpha=50, sigma=5)])
 
+        self.is_train = aug
         self.normalize = tvF.Compose([tvF.ToTensor(), NORMALIZE])
         self.totensor = tvF.Compose([tvF.ToTensor()])
         self.num_classes = num_classes
-        self.aug=aug
 
     def __call__(self, image, mask):
         image = np.asarray(image)
         mask = np.asarray(mask, dtype=np.int32)
 
         # imgaug
-        if self.aug:
+        if self.is_train:
             mask = SegmentationMapsOnImage(mask, shape=image.shape)
             image, aug_mask = self.aug(image=image, segmentation_maps=mask)
+            mask = aug_mask.get_arr()
+        # print(np.unique(mask))
 
         #"one-hot encode"
         # print(mask.shape)
         # print(np.unique(mask))
-            mask = aug_mask.get_arr()
         mask = np.eye(self.num_classes)[mask]
-        
 
         #
         # aug_image=aug_image.cpu.numpy()
         # plt.imshow(aug_image)
         # plt.show()
-        
+
         image_norm = self.normalize(image)
         mask = self.totensor(mask).float()
         return image_norm, mask
