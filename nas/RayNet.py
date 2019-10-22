@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from inspect import isfunction
-from Mix import mixnet_xl
+from nas.Mix import mixnet_xl
 
 
 def initialize_weights(*nnmodels):
@@ -196,9 +196,8 @@ class RayNet(nn.Module):
     def forward(self, inputs):
         _, middle_feature = self.encode(inputs)
 
-        low_feat = self.low_conv(middle_feature[0])
-
         aspp_out = self.aspp(middle_feature[-1])
+        low_feat = self.low_conv(middle_feature[0])
         up_aspp = self.up8(aspp_out)
 
         cat = torch.cat([low_feat, up_aspp], dim=1)
