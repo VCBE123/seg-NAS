@@ -1,54 +1,54 @@
-encode param:10.364379
-aspp param:11.734016
-low_conv param:0.0128
-up8 param:0.0
-outconv1 param:2.36032
-outconv2 param:2.36032
-out param:0.001542
-up4 param:0.0
 pre_forward encode th-node:
-max_memory_allocated: 108.37 memory_allocated: 108.37
+max_memory_allocated: 56.93 memory_allocated: 56.93
 after_forward encode th-node:
-max_memory_allocated: 1454.95 memory_allocated: 1454.95
+max_memory_allocated: 1401.27 memory_allocated: 1401.26
 pre_forward low_conv th-node:
-max_memory_allocated: 1454.95 memory_allocated: 1454.95
+max_memory_allocated: 1401.27 memory_allocated: 1401.26
 after_forward low_conv th-node:
-max_memory_allocated: 1490.96 memory_allocated: 1490.96
+max_memory_allocated: 1457.51 memory_allocated: 1457.51
 pre_forward aspp th-node:
-max_memory_allocated: 1490.96 memory_allocated: 1490.96
+max_memory_allocated: 1457.51 memory_allocated: 1457.51
 after_forward aspp th-node:
-max_memory_allocated: 1496.66 memory_allocated: 1496.38
+max_memory_allocated: 1463.20 memory_allocated: 1462.92
 pre_forward up8 th-node:
-max_memory_allocated: 1496.66 memory_allocated: 1496.38
+max_memory_allocated: 1463.20 memory_allocated: 1462.92
 after_forward up8 th-node:
-max_memory_allocated: 1514.38 memory_allocated: 1514.38
+max_memory_allocated: 1480.92 memory_allocated: 1480.92
 pre_forward outconv1 th-node:
-max_memory_allocated: 1550.40 memory_allocated: 1550.38
+max_memory_allocated: 1516.95 memory_allocated: 1516.92
 after_forward outconv1 th-node:
-max_memory_allocated: 1622.38 memory_allocated: 1622.38
+max_memory_allocated: 1804.93 memory_allocated: 1804.93
 pre_forward outconv2 th-node:
-max_memory_allocated: 1622.38 memory_allocated: 1622.38
+max_memory_allocated: 1804.93 memory_allocated: 1804.93
 after_forward outconv2 th-node:
-max_memory_allocated: 1694.39 memory_allocated: 1694.39
+max_memory_allocated: 2092.94 memory_allocated: 2092.94
 pre_forward out th-node:
-max_memory_allocated: 1694.39 memory_allocated: 1694.39
+max_memory_allocated: 2092.94 memory_allocated: 2092.94
 after_forward out th-node:
-max_memory_allocated: 1694.81 memory_allocated: 1694.81
+max_memory_allocated: 2309.37 memory_allocated: 2309.37
 pre_forward up4 th-node:
-max_memory_allocated: 1694.81 memory_allocated: 1694.81
+max_memory_allocated: 2309.37 memory_allocated: 2309.37
 after_forward up4 th-node:
-max_memory_allocated: 1698.18 memory_allocated: 1698.18
+max_memory_allocated: 2312.74 memory_allocated: 2312.74
 after_backward up4 th-node:
-max_memory_allocated: 1701.56 memory_allocated: 1686.85
+max_memory_allocated: 2315.90 memory_allocated: 2283.21
 after_backward out th-node:
-max_memory_allocated: 1701.56 memory_allocated: 1683.69
+max_memory_allocated: 2315.90 memory_allocated: 2280.04
 after_backward outconv2 th-node:
-max_memory_allocated: 1754.85 memory_allocated: 1754.85
+max_memory_allocated: 2315.90 memory_allocated: 2100.42
 after_backward outconv1 th-node:
-max_memory_allocated: 1889.85 memory_allocated: 1691.85
+max_memory_allocated: 2315.90 memory_allocated: 1814.46
 after_backward up8 th-node:
-max_memory_allocated: 1889.85 memory_allocated: 1557.13
+max_memory_allocated: 2315.90 memory_allocated: 1492.77
 after_backward aspp th-node:
-max_memory_allocated: 1889.85 memory_allocated: 1557.41
+max_memory_allocated: 2315.90 memory_allocated: 1493.05
 after_backward low_conv th-node:
-max_memory_allocated: 1889.85 memory_allocated: 1618.12
+max_memory_allocated: 2315.90 memory_allocated: 1516.86
+encode param:9.866139
+aspp param:2.706432
+low_conv param:0.015296
+up8 param:0.0
+outconv1 param:0.535552
+outconv2 param:0.535552
+out param:0.265734
+up4 param:0.0

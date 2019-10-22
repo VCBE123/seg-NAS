@@ -1,16 +1,15 @@
 import sys
-from RayNet import RayNet_v0
+from RayNet import RayNet
 import torch
 import os
 import torch.nn as nn
 import numpy as np
 
 
-
-
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '6'
 f = open('log.txt', 'w')
 sys.stdout = f
+
 
 def get_hook_fn(i, device, phase):
     if 'pre_forward' in phase:
@@ -45,20 +44,21 @@ def count_parameters(model):
 
 device = torch.device('cuda')
 Criterion = nn.BCELoss().cuda()
-net = RayNet_v0()
+net = RayNet()
 net = net.cuda()
 
 # register("encode", net.encode)
 # register("aspp", net.aspp)
-# register("Raynet", net)
-for i,model in net.named_children():
-    register(i,model)
-    print('{} param:{}'.format(i,count_parameters(model)))
+# register("Raynet", net).
+for i, model in net.named_children():
+    register(i, model)
 
 inputs = torch.randn(2, 3, 384, 384).cuda()
 out = net(inputs)
-target = torch.randn([2,3,384,384]).cuda()
+target = torch.randn([2, 3, 384, 384]).cuda()
 loss = Criterion(out, target)
 loss.backward()
 
+for i, model in net.named_children():
+    print('{} param:{}'.format(i, count_parameters(model)))
 f.close()

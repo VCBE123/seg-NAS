@@ -3,7 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from inspect import isfunction
-from nas.Mix import  mixnet_xl
+from Mix import mixnet_xl
+
+
 def initialize_weights(*nnmodels):
     "initial with kaiming"
     for model in nnmodels:
@@ -63,17 +65,14 @@ class ASSP(nn.Module):
         x2 = self.aspp2(x)
         x3 = self.aspp3(x)
         x4 = self.aspp4(x)
-        x5 = F.interpolate(self.avg_pool(x),size=x.size()[2:],mode='bilinear',align_corners=True)
+        x5 = F.interpolate(self.avg_pool(x), size=x.size()[
+                           2:], mode='bilinear', align_corners=True)
 
         x = self.conv1(torch.cat((x1, x2, x3, x4, x5), dim=1))
         x = self.bn1(x)
         x = self.dropout(self.relu(x))
 
         return x
-
-
-
-
 
 
 class SepConv(nn.Module):
@@ -96,7 +95,6 @@ class SepConv(nn.Module):
 
     def forward(self, x):
         return self.ops(x)
-
 
 
 class ConvBlock(nn.Module):
@@ -180,9 +178,11 @@ class ConvBlock(nn.Module):
 
 class RayNet(nn.Module):
     "adopt from gao ray"
+
     def __init__(self, pretrained=True, num_classes=3):
         super(RayNet, self).__init__()
-        self.encode = mixnet_xl(pretrained=pretrained,num_classes=num_classes,head_conv=None)
+        self.encode = mixnet_xl(pretrained=pretrained,
+                                num_classes=num_classes, head_conv=None)
         self.aspp = ASSP(in_channels=320, output_stride=8)
         self.low_conv = SepConv(48, 256, 1, 1, 0)
         self.up8 = nn.Upsample(
@@ -194,7 +194,7 @@ class RayNet(nn.Module):
             scale_factor=4, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
-        _, middle_feature = self.encode.forward_features(inputs)
+        _, middle_feature = self.encode(inputs)
 
         low_feat = self.low_conv(middle_feature[0])
 
@@ -210,29 +210,28 @@ class RayNet(nn.Module):
         return out
 
 
-
 class RayNet_v0(nn.Module):
     "adopt from gao ray"
+
     def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
         super(RayNet_v0, self).__init__()
         self.encode = timm.create_model(
             encode, pretrained=pretrained, num_classes=num_classes)
         self.aspp = ASSP(in_channels=1536, output_stride=8)
-        self.low_conv =ConvBlock(48, 256, 1, 1, 0)
+        self.low_conv = ConvBlock(48, 256, 1, 1, 0)
         self.up8 = nn.Upsample(
             scale_factor=8, mode='bilinear', align_corners=True)
         self.outconv1 = ConvBlock(512, 512, 3, 1, 1)
-        self.outconv2 =ConvBlock(512, 512, 3, 1, 1)
-        self.out =ConvBlock(512, num_classes, 1, 1, 0)
+        self.outconv2 = ConvBlock(512, 512, 3, 1, 1)
+        self.out = ConvBlock(512, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
             scale_factor=4, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
         _, middle_feature = self.encode(inputs)
 
-        low_feat = self.low_conv(middle_feature[0])
-
         aspp_out = self.aspp(middle_feature[1])
+        low_feat = self.low_conv(middle_feature[0])
         up_aspp = self.up8(aspp_out)
 
         cat = torch.cat([low_feat, up_aspp], dim=1)
