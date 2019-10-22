@@ -182,7 +182,7 @@ class CellDecode(nn.Module):
                                mode='bilinear', align_corners=True)
         else:
             s0 = F.interpolate(s0, scale_factor=2.,
-                           mode='bilinear', align_corners=True)
+                               mode='bilinear', align_corners=True)
         s1 = self.preprocess1(s1)
 
         s1 = F.interpolate(s1, scale_factor=2.,
@@ -220,8 +220,9 @@ class NASRayNet(nn.Module):
 
         self.low_cell = CellNormal(48, 64, 32, switches_normal)
 
-        self.outcell1 =CellDecode(192, 96, 64, switches_expansion,expansion_prev=False)
-        
+        self.outcell1 = CellDecode(
+            192, 96, 64, switches_expansion, expansion_prev=False)
+
         self.out = SepConv(192, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
             scale_factor=4, mode='bilinear', align_corners=True)
@@ -235,11 +236,12 @@ class NASRayNet(nn.Module):
         decode1 = self.decode_cell(aspp, middle_feature[-2], weights)
 
         weights = F.softmax(self.alphas_normal, dim=-1)
-        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1], weights)
+        low_feat1 = self.low_cell(
+            middle_feature[0], middle_feature[1], weights)
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
 
-        out = self.outcell1(decode1,low_feat1, weights)
+        out = self.outcell1(decode1, low_feat1, weights)
         out = self.out(out)
         out = self.up4(out)
         out = torch.softmax(out, 1)
@@ -272,8 +274,8 @@ if __name__ == '__main__':
     switches_normal = copy.deepcopy(switches)
     switches_expansion = copy.deepcopy(switches)
     criterion = nn.BCELoss()
-    net = NASRayNet(switch_normal=switches_normal,
-                    switch_expansion=switches_expansion)
+    net = NASRayNet(switches_normal=switches_normal,
+                    switches_expansion=switches_expansion)
 
     inputs = torch.randn([2, 3, 384, 384])
     output = net(inputs)

@@ -40,8 +40,8 @@ def get_follicle(args):
     train_trans = ImgAugTrans(crop_size=384, aug=True)
     test_trans = ImgAugTrans(crop_size=384, aug=False)
 
-    trainset = FollicleDataset('/data/follicle/train.txt', train_trans)
-    testset = FollicleDataset('/data/follicle/eval.txt', test_trans)
+    trainset = FollicleDataset('/data/lir/follicle_new/train.txt', train_trans)
+    testset = FollicleDataset('/data/lir/follicle_new/eval.txt', test_trans)
     trainloader = DataLoader(trainset, batch_size=args.batch_size,
                              shuffle=True, num_workers=args.workers, pin_memory=True)
     testloader = DataLoader(
