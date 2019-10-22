@@ -13,26 +13,26 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 import copy
-from nas import NASUnet, WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet
+from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
 parser = argparse.ArgumentParser("p-search nas-unet")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
-parser.add_argument('--batch_size', type=int, default=4, help='batch size')
+parser.add_argument('--batch_size', type=int, default=12, help='batch size')
 parser.add_argument('--learning_rate', type=float,
                     default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
-                    default=0.0, help='min learning rate')
+                    default=0.000025, help='min learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 parser.add_argument('--weight_decay', type=float,
                     default=3e-4, help='weight decay')
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,6', help='GPU device id')
-parser.add_argument('--epochs', type=int, default=1,
+                    default='3,4,5', help='GPU device id')
+parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
                     default=8, help='num of init channels')
@@ -63,7 +63,6 @@ parser.add_argument('--arch', default='nasunet')
 parser.add_argument('--classes', default=3)
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
 args.save = '{}/train-{}-{}-{}'.format(args.save,
                                        args.debug, args.arch, time.strftime("%y%m%d-%h%m%s"))
 
@@ -82,17 +81,19 @@ def main():
     if not torch.cuda.is_available():
         logging.info('No GPU device available')
         sys.exit(1)
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
     np.random.seed(args.seed)
     cudnn.benchmark = True
     torch.manual_seed(args.seed)
     cudnn.enabled = True
     torch.cuda.manual_seed(args.seed)
-    logging.info('GPU device = %s' % args.gpus)
+    logging.info('GPU number = %d' % torch.cuda.device_count())
     logging.info("args = %s", args)
     #  prepare dataset
 
     train_trans = ImgAugTrans(384)
-    train_data = FollicleDataset('/data/follicle/train.txt', train_trans)
+    train_data = FollicleDataset('/data/lir/follicle/train.txt', train_trans)
 
     num_train = len(train_data)
     indices = list(range(num_train))
@@ -138,7 +139,8 @@ def main():
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         # 4, switches_normal=switches_normal, switches_reduce=switches_reduce)
-        model = NASRayNet(switches_normal=switches_normal, switches_expansion=switches_reduce)
+        model = NASRayNet(switches_normal=switches_normal,
+                          switches_expansion=switches_reduce)
 
         model = nn.DataParallel(model)
         model = model.cuda()
@@ -535,7 +537,8 @@ def keep_2_branches(switches_in, probs):
 
 
 if __name__ == '__main__':
-    os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
     start_time = time.time()
     main()
     end_time = time.time()

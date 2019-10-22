@@ -23,7 +23,7 @@ def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train raynet')
     parser.add_argument('--workers', type=int, default=24)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
