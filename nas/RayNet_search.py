@@ -116,7 +116,7 @@ class MixedOp(nn.Module):
 
     def forward(self, x, weights):
         # Fixme debug on cpu
-        return sum(w.gpu()*operation(x.gpu()) for w, operation in zip(weights, self.m_op))
+        return sum(w*operation(x) for w, operation in zip(weights, self.m_op))
 
 
 class CellNormal(nn.Module):
@@ -198,9 +198,9 @@ class CellDecode(nn.Module):
 
 
 class NASRayNet(nn.Module):
-    "adopt from gao ray"
+    "adopt from raynet_v0"
 
-    def __init__(self, pretrained=True, num_classes=3, switch_normal=None, switch_expansion=None):
+    def __init__(self, pretrained=True, num_classes=3, switches_normal=None, switches_expansion=None):
         super(NASRayNet, self).__init__()
         self.steps = 4
         switch_ons = []
@@ -214,46 +214,32 @@ class NASRayNet(nn.Module):
         self.switch_on = switch_ons[0]
         self.encode = mixnet_xl(pretrained=pretrained,
                                 num_classes=num_classes, head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        self.aspp1 = ASSP(in_channels=320, output_stride=8)
-        self.aspp2 = ASSP(in_channels=128, output_stride=16)
-        self.decode_cell_1 = CellDecode(
-            256, 256, 64, switches=switch_expansion, expansion_prev=True)
-        self.decode_cell_2 = CellDecode(
-            256, 192, 96, switches=switch_expansion, expansion_prev=True)
-        self.decode_cell_3 = CellDecode(
-            192, 288, 96, switches=switch_expansion, expansion_prev=True)
+        self.aspp = ASSP(in_channels=320, output_stride=16)
+        self.decode_cell = CellDecode(
+            256, 128, 64, switches=switches_expansion, expansion_prev=True)
 
-        self.low_cell_1 = CellNormal(48, 64, 64, switch_normal)
-        self.low_cell_2 = CellNormal(288, 192, 64, switch_normal)
+        self.low_cell = CellNormal(48, 64, 32, switches_normal)
 
-        self.outcell1 = CellNormal(
-            192, 192, 128, switch_expansion, reduce_prev=False)
-        self.outcell2 = CellNormal(
-            288, 288, 128, switch_expansion, reduce_prev=True)
-        self.out = SepConv(384, num_classes, 1, 1, 0)
+        self.outcell1 =CellDecode(192, 96, 64, switches_expansion,expansion_prev=False)
+        
+        self.out = SepConv(192, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
             scale_factor=4, mode='bilinear', align_corners=True)
         self._initialize_alphas()
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        aspp1 = self.aspp1(middle_feature[-1])
-        aspp2 = self.aspp2(middle_feature[-2])
+        aspp = self.aspp(middle_feature[-1])
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
-        decode1 = self.decode_cell_1(aspp1, aspp2, weights)
-        decode2 = self.decode_cell_2(aspp2, decode1, weights)
+        decode1 = self.decode_cell(aspp, middle_feature[-2], weights)
 
         weights = F.softmax(self.alphas_normal, dim=-1)
-        low_feat1 = self.low_cell_1(
-            middle_feature[0], middle_feature[1], weights)
-        low_feat2 = self.low_cell_2(decode2, low_feat1,  weights)
+        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1], weights)
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
-        decode3 = self.decode_cell_3(low_feat2, decode2, weights)
 
-        # out = self.outcell1(low_feat2, decode1, weights)
-        out = self.outcell2(decode3, decode2, weights)
+        out = self.outcell1(decode1,low_feat1, weights)
         out = self.out(out)
         out = self.up4(out)
         out = torch.softmax(out, 1)

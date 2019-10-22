@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import RayNet_v0
+from nas import RayNet
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle
 # import multiprocessing
@@ -21,7 +21,7 @@ def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=1)
-    parser.add_argument('--batch_size', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='unet')
     parser.add_argument('--classes', default=3)
@@ -42,10 +42,11 @@ def main():
     torch.manual_seed(ARGS.seed)
     torch.cuda.manual_seed(ARGS.seed)
 
-    model = RayNet_v0()
+    model = RayNet()
     model = nn.DataParallel(model)
     model = model.cuda()
-    model.load_state_dict(torch.load('model_best.pth.tar')['state_dict'])
+    state_dict = torch.load('model_best.pth.tar')
+    model.load_state_dict(state_dict['state_dict'])
 
     _, val_loader = get_follicle(ARGS)
     epoch_start = time.time()
@@ -59,7 +60,7 @@ def infer(valid_loader, model):
     "validate func"
     dice_ovary_meter = AverageMeter()
     dice_follicle_meter = AverageMeter()
-    model.eval()
+    # model.eval()
     count = 0
     for inputs, targets in tqdm.tqdm(valid_loader):
         inputs = inputs.cuda()
@@ -69,16 +70,16 @@ def infer(valid_loader, model):
 
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
-        pred = logits.cpu().numpy()
-        segmap = np.argmax(pred.squeeze(), axis=0)
-        segmap[segmap == 1] = 128
-        segmap[segmap == 2] = 255
+        # pred = logits.cpu().numpy()
+        # segmap = np.argmax(pred.squeeze(), axis=0)
+        # segmap[segmap == 1] = 128
+        # segmap[segmap == 2] = 255
 
-        cv2.imwrite('logs/fig/{}.png'.format(count), segmap)
+        # cv2.imwrite('logs/fig/{}.png'.format(count), segmap)
         count += 1
-        batch_size = inputs.size(0)
-        dice_follicle_meter.update(dice_follicle, batch_size)
-        dice_ovary_meter.update(dice_ovary, batch_size)
+        # batch_size = inputs.size(0)
+        dice_follicle_meter.update(dice_follicle)
+        dice_ovary_meter.update(dice_ovary)
     return dice_follicle_meter.avg, dice_ovary_meter.avg
 
 
