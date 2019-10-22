@@ -4,7 +4,6 @@ import torchvision.transforms as tvF
 import imgaug as ia
 from imgaug import augmenters as iaa
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
-import matplotlib.pyplot as plt
 
 ia.seed(109)
 
@@ -26,14 +25,16 @@ class ImgAugTrans:
     "augment image and the mask"
 
     def __init__(self, crop_size=384, num_classes=3, aug=True):
-        self.aug = iaa.Sequential([
-            iaa.Resize({"height": crop_size, "width": crop_size}),
-            iaa.Dropout([0.05, 0.2]),
-            iaa.Sharpen((0.0, 1.0)),
-            iaa.Affine(rotate=(-20, 20)),
-            iaa.ElasticTransformation(alpha=50, sigma=5)])
-
-        self.is_train = aug
+        if aug:
+            self.aug = iaa.Sequential([
+                iaa.Resize({"height": crop_size, "width": crop_size}),
+                iaa.Dropout([0.05, 0.2]),
+                iaa.Sharpen((0.0, 1.0)),
+                iaa.Affine(rotate=(-20, 20)),
+                iaa.ElasticTransformation(alpha=50, sigma=5)])
+        else:
+            self.aug = iaa.Sequential(
+                [iaa.Resize({"height": crop_size, "width": crop_size}), ])
         self.normalize = tvF.Compose([tvF.ToTensor(), NORMALIZE])
         self.totensor = tvF.Compose([tvF.ToTensor()])
         self.num_classes = num_classes
@@ -43,21 +44,12 @@ class ImgAugTrans:
         mask = np.asarray(mask, dtype=np.int32)
 
         # imgaug
-        if self.is_train:
-            mask = SegmentationMapsOnImage(mask, shape=image.shape)
-            image, aug_mask = self.aug(image=image, segmentation_maps=mask)
-            mask = aug_mask.get_arr()
-        # print(np.unique(mask))
+        mask = SegmentationMapsOnImage(mask, shape=image.shape)
+        image, aug_mask = self.aug(image=image, segmentation_maps=mask)
+        mask = aug_mask.get_arr()
 
         #"one-hot encode"
-        # print(mask.shape)
-        # print(np.unique(mask))
         mask = np.eye(self.num_classes)[mask]
-
-        #
-        # aug_image=aug_image.cpu.numpy()
-        # plt.imshow(aug_image)
-        # plt.show()
 
         image_norm = self.normalize(image)
         mask = self.totensor(mask).float()
