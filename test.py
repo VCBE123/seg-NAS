@@ -26,7 +26,7 @@ def get_parser():
     parser.add_argument('--arch', default='unet')
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='4')
+    parser.add_argument('--gpus', default='6')
     return parser.parse_args()
 
 
