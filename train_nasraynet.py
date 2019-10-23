@@ -36,7 +36,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='4,5,6,7')
+    parser.add_argument('--gpus', default='4,5,6,3')
     return parser.parse_args()
 
 

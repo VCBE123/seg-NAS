@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import cv2
 from .img_preprocess import ImgAugTrans
+import numpy as np
 
 
 class FollicleDataset(Dataset):

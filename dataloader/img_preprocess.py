@@ -42,14 +42,14 @@ class ImgAugTrans:
     def __call__(self, image, mask):
         image = np.asarray(image)
         mask = np.asarray(mask, dtype=np.int32)
-        mask[mask == 127] = 1
-        mask[mask == 254] = 2
+        mask[mask  <100] = 0
+        mask[mask > 200] = 2
+        mask[mask>2] =1
 
         # imgaug
         mask = SegmentationMapsOnImage(mask, shape=image.shape)
         image, aug_mask = self.aug(image=image, segmentation_maps=mask)
         mask = aug_mask.get_arr()
-
         #"one-hot encode"
         mask = np.eye(self.num_classes)[mask]
 
