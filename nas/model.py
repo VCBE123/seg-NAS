@@ -200,11 +200,11 @@ class NASRayNetEval(nn.Module):
         self.low_cell = Cell(genotype, 48, 64, 32,reduction=False, reduction_prev=True)
 
         self.outcell1 = CellDecode( genotype,256, 128, 64,expansion=True, expansion_prev=True)
-        self.outcell2 = CellDecode( genotype,128, 256, 64,expansion=True, expansion_prev=True)
+        # self.outcell2 = CellDecode( genotype,128, 256, 64,expansion=True, expansion_prev=True)
 
         self.out = SepConv(256, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
-            scale_factor=2, mode='bilinear', align_corners=True)
+            scale_factor=4, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
@@ -216,7 +216,7 @@ class NASRayNetEval(nn.Module):
 
 
         out = self.outcell1(decode1, low_feat1)
-        out = self.outcell2(low_feat1,out)
+        # out = self.outcell2(low_feat1,out)
         out = self.out(out)
         out = self.up4(out)
         out = torch.softmax(out, 1)
