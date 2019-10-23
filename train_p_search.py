@@ -32,7 +32,7 @@ parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
                     default='3,4,5', help='GPU device id')
-parser.add_argument('--epochs', type=int, default=25,
+parser.add_argument('--epochs', type=int, default=4,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
                     default=8, help='num of init channels')
