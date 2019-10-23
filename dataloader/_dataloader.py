@@ -35,10 +35,10 @@ class FollicleDataset(Dataset):
         return image, label
 
 
-def get_follicle(args):
+def get_follicle(args, train_aug=True, test_aug=False):
     "return trainloader,testloader"
-    train_trans = ImgAugTrans(crop_size=384, aug=True)
-    test_trans = ImgAugTrans(crop_size=384, aug=False)
+    train_trans = ImgAugTrans(crop_size=384, aug=train_aug)
+    test_trans = ImgAugTrans(crop_size=384, aug=test_aug)
 
     trainset = FollicleDataset('/data/lir/follicle/train.txt', train_trans)
     testset = FollicleDataset('/data/lir/follicle/eval.txt', test_trans)
