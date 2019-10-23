@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.nn import init
 from .operation import FactorizedReduce, ReLUConvBN, OPS
 from .genotype import  s3
-
+from .Mix import mixnet_xl
+from .RayNet import ASSP, SepConv
 class Cell(nn.Module):
 
     def __init__(self, genotype, C_prev_prev, C_prev, C, reduction, reduction_prev):
@@ -185,8 +186,46 @@ class NASseg(nn.Module):
                     init.constant_(module.bias, 0)
 
 
+
+class NASRayNetEval(nn.Module):
+    "adopt from raynet_v0"
+
+    def __init__(self, pretrained=True, num_classes=3, genotype='unet',layer=12):
+        super(NASRayNetEval, self).__init__()
+        self.encode = mixnet_xl(pretrained=pretrained,
+                                num_classes=num_classes, head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
+        self.aspp = ASSP(in_channels=320, output_stride=16)
+        self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
+
+        self.low_cell = Cell(genotype, 48, 64, 32,reduction=False, reduction_prev=True)
+
+        self.outcell1 = CellDecode( genotype,256, 128, 64,expansion=True, expansion_prev=True)
+        self.outcell2 = CellDecode( genotype,128, 256, 64,expansion=True, expansion_prev=True)
+
+        self.out = SepConv(256, num_classes, 1, 1, 0)
+        self.up4 = nn.Upsample(
+            scale_factor=2, mode='bilinear', align_corners=True)
+
+    def forward(self, inputs):
+        _, middle_feature = self.encode.forward_features(inputs)
+        aspp = self.aspp(middle_feature[-1])
+
+        decode1 = self.decode_cell(aspp, middle_feature[-2])
+
+        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1])
+
+
+        out = self.outcell1(decode1, low_feat1)
+        out = self.outcell2(low_feat1,out)
+        out = self.out(out)
+        out = self.up4(out)
+        out = torch.softmax(out, 1)
+        return out
+
+
+
 if __name__ == "__main__":
-    a = NASseg(16,3,s3,12)
-    inputs=torch.randn(1,3,384,384)
+    a = NASRayNetEval(16,3,s3,12)
+    inputs=torch.randn(2,3,384,384)
     out=a(inputs)
     print(out.size())
