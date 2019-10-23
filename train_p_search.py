@@ -62,7 +62,7 @@ parser.add_argument('--debug', default='')
 parser.add_argument('--arch', default='nasunet')
 parser.add_argument('--classes', default=3)
 args = parser.parse_args()
-
+os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
 args.save = '{}/train-{}-{}-{}'.format(args.save,
                                        args.debug, args.arch, time.strftime("%y%m%d-%h%m%s"))
 
@@ -93,7 +93,7 @@ def main():
     #  prepare dataset
 
     train_trans = ImgAugTrans(384)
-    train_data = FollicleDataset('/data/lir/follicle/train.txt', train_trans)
+    train_data = FollicleDataset('/data/follicle/train.txt', train_trans)
 
     num_train = len(train_data)
     indices = list(range(num_train))
@@ -103,13 +103,13 @@ def main():
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
-        pin_memory=True, num_workers=args.workers)
+        pin_memory=True, num_workers=args.workers,drop_last=True)
 
     valid_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
         sampler=torch.utils.data.sampler.SubsetRandomSampler(
-            indices[split:num_train]),
-        pin_memory=True, num_workers=args.workers)
+            indices[split:]),
+        pin_memory=True, num_workers=args.workers,drop_last=True)
 
     # build Network
     criterion = WeightDiceLoss().cuda()
@@ -134,7 +134,7 @@ def main():
         drop_rate = args.dropout_rate
     else:
         drop_rate = [0.0, 0.0, 0.0]
-    eps_no_archs = [5, 5, 5, 5]
+    eps_no_archs = [0, 0, 0, 0]
     for sp in range(len(num_to_keep)):
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
@@ -538,7 +538,6 @@ def keep_2_branches(switches_in, probs):
 
 if __name__ == '__main__':
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
     start_time = time.time()
     main()
     end_time = time.time()
