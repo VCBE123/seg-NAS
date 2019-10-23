@@ -23,7 +23,7 @@ def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
@@ -36,7 +36,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,1,2')
+    parser.add_argument('--gpus', default='0,1,2,3')
     return parser.parse_args()
 
 
@@ -135,10 +135,7 @@ def train(train_loader, model, criterion, optimizer):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-        print(target.size())
-        
         logits = model(inputs)
-        print(logits.size())
         loss = criterion(logits, target)
         optimizer.zero_grad()
         loss.backward()
