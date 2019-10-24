@@ -20,8 +20,8 @@ class FollicleDataset(Dataset):
         """
         self.txt = txt
         self.lines = open(self.txt, 'r').readlines()
-        self.images = [line.split(' ')[0].strip().replace('/data/gaorui/chanqian/Rawdata/Measurement','/data/lir') for line in self.lines]
-        self.labels = [line.split(' ')[1].strip().replace('/data/gaorui/chanqian/Rawdata/Measurement','/data/lir') for line in self.lines]
+        self.images = [line.split(' ')[0].strip() for line in self.lines]
+        self.labels = [line.split(' ')[1].strip() for line in self.lines]
         self.trans = transform
         print(len(self.images))
 
