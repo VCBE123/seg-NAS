@@ -44,9 +44,9 @@ def get_follicle(args, train_aug=True, test_aug=False):
     trainset = FollicleDataset('/data/lir/follicle/train.txt', train_trans)
     testset = FollicleDataset('/data/lir/follicle/eval.txt', test_trans)
     trainloader = DataLoader(trainset, batch_size=args.batch_size,
-                             shuffle=True, num_workers=args.workers, pin_memory=True)
+                             shuffle=True, num_workers=args.workers, pin_memory=True, drop_last=True)
     testloader = DataLoader(
-        testset, batch_size=args.batch_size, num_workers=args.workers, pin_memory=True)
+        testset, batch_size=args.batch_size, num_workers=args.workers, pin_memory=True, drop_last=True)
     return trainloader, testloader
 
 

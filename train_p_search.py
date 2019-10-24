@@ -93,7 +93,7 @@ def main():
     #  prepare dataset
 
     train_trans = ImgAugTrans(384)
-    train_data = FollicleDataset('/data/lir/follicle/train_search.txt', train_trans)
+    train_data = FollicleDataset('/data/lir/follicle/train_pain.txt', train_trans)
 
     num_train = len(train_data)
     indices = list(range(num_train))
