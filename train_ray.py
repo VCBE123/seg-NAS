@@ -31,7 +31,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=9)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='raynet_DICE_new_6')
+    parser.add_argument('--arch', default='raynet_new_9')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)

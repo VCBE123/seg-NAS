@@ -31,8 +31,8 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='3,4,5', help='GPU device id')
-parser.add_argument('--epochs', type=int, default=4,
+                    default='0,1,2,6', help='GPU device id')
+parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
                     default=8, help='num of init channels')
@@ -93,7 +93,7 @@ def main():
     #  prepare dataset
 
     train_trans = ImgAugTrans(384)
-    train_data = FollicleDataset('/data/follicle/train_search.txt', train_trans)
+    train_data = FollicleDataset('/data/lir/follicle/train_search.txt', train_trans)
 
     num_train = len(train_data)
     indices = list(range(num_train))
@@ -134,7 +134,7 @@ def main():
         drop_rate = args.dropout_rate
     else:
         drop_rate = [0.0, 0.0, 0.0]
-    eps_no_archs = [0, 0, 0, 0]
+    eps_no_archs = [5, 5, 5, 5]
     for sp in range(len(num_to_keep)):
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
