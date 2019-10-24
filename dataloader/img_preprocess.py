@@ -42,9 +42,6 @@ class ImgAugTrans:
     def __call__(self, image, mask):
         image = np.asarray(image)
         mask = np.asarray(mask, dtype=np.int32)
-        mask[mask  <100] = 0
-        mask[mask > 200] = 2
-        mask[mask>2] =1
 
         # imgaug
         mask = SegmentationMapsOnImage(mask, shape=image.shape)
