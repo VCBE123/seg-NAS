@@ -13,15 +13,15 @@ import numpy as np
 from nas import RayNet
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle
-# import multiprocessing
-# multiprocessing.set_start_method('spawn', True)
+import multiprocessing
+multiprocessing.set_start_method('spawn', True)
 
 
 def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
-    parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=22)
+    parser.add_argument('--workers', type=int, default=1)
+    parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='unet')
     parser.add_argument('--classes', default=3)
@@ -62,11 +62,12 @@ def infer(valid_loader, model):
     "validate func"
     dice_ovary_meter = AverageMeter()
     dice_follicle_meter = AverageMeter()
-    for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
-            m.track_running_stats = False
+    # for m in model.modules():
+        # if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
+            # m.track_running_stats = False
 
-    # model.eval()
+    model.eval()
+    print(model.training)
     count = 0
     for inputs, targets in tqdm.tqdm(valid_loader):
         inputs = inputs.cuda()

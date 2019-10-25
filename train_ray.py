@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import RayNet, WeightDiceLoss
+from nas import RayNet_v0, WeightDiceLoss
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -31,7 +31,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=9)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='raynet_new_9')
+    parser.add_argument('--arch', default='raynet_v0')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
@@ -68,7 +68,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = RayNet()
+    model = RayNet_v0()
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -80,7 +80,7 @@ def main():
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
     train_loader, val_loader = get_follicle(ARGS, train_aug=False)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4)
     best_dice = 0
 
     for epoch in range(ARGS.epochs):

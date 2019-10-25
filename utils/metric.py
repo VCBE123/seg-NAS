@@ -64,10 +64,13 @@ def get_dice_follicle(pred, mask):
     mask = mask.cpu().numpy()
     mask = np.argmax(mask, 1)
     mask[mask == 2] = 0
-    iflaten = pred.flatten()
-    tflaten = mask.flatten()
-    intersection = (iflaten * tflaten).sum()
-    return (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
+    dice = 0.
+    for i in range(mask.shape[0]):
+        iflaten = pred[i, ...].flatten()
+        tflaten = mask[i, ...].flatten()
+        intersection = (iflaten * tflaten).sum()
+        dice += (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
+    return dice/mask.shape[0]
 
 
 def get_dice_ovary(pred, mask):
@@ -80,11 +83,14 @@ def get_dice_ovary(pred, mask):
     '''
     pred = pred.cpu().numpy()
     pred = np.argmax(pred, 1)
-    pred = np.clip(pred, 0, 1)
+    pred[pred == 2] = 1
     mask = mask.cpu().numpy()
     mask = np.argmax(mask, 1)
-    mask = np.clip(mask, 0, 1)
-    iflaten = pred.flatten()
-    tflaten = mask.flatten()
-    intersection = (iflaten * tflaten).sum()
-    return (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
+    mask[mask == 2] = 1
+    dice = 0.
+    for i in range(mask.shape[0]):
+        iflaten = pred[i, ...].flatten()
+        tflaten = mask[i, ...].flatten()
+        intersection = (iflaten * tflaten).sum()
+        dice += (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
+    return dice/mask.shape[0]
