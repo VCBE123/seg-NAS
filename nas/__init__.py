@@ -7,4 +7,4 @@ from .genotype import PRIMITIVES, Genotype, s3, u1, ray1
 from .RayNet import RayNet, RayNet_v0, ASSP, SepConv
 from .model import NASseg, NASRayNetEval
 from .Mix import mixnet_xl
-from .RayNet_search import NASRayNet
+from .RayNet_search import NASRayNet, NASRayNet_v1
