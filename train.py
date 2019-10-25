@@ -31,12 +31,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=250)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='unet')
+    parser.add_argument('--arch', default='unet_scratch')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,2,6')
+    parser.add_argument('--gpus', default='0,1,2')
     return parser.parse_args()
 
 
@@ -79,8 +79,8 @@ def main():
 
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(ARGS)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50)
+    train_loader, val_loader = get_follicle(ARGS, train_aug=False)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100,50,30],gamma=0.1)
     best_dice = 0
 
     for epoch in range(ARGS.epochs):
