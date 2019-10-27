@@ -28,7 +28,7 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=9)
+    parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='nasray_ray1')
@@ -80,7 +80,7 @@ def main():
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
     train_loader, val_loader = get_follicle(ARGS,train_aug=False)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
     best_dice = 0
 
     for epoch in range(ARGS.epochs):

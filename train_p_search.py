@@ -120,8 +120,8 @@ def main():
     switches_normal = copy.deepcopy(switches)
     switches_reduce = copy.deepcopy(switches)
     # To be moved to args
-    num_to_keep = [6, 4, 2, 1]
-    num_to_drop = [3, 2, 2, 1]
+    num_to_keep = [5, 3, 1]
+    num_to_drop = [3, 2, 2]
     if len(args.add_width) == 3:
         add_width = args.add_width
     else:
