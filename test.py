@@ -12,7 +12,7 @@ import torch.backends.cudnn as cudnn
 import numpy as np
 from nas import RayNet
 from dataloader import get_follicle
-from utils import AverageMeter, get_dice_ovary, get_dice_follicle
+from utils import AverageMeter, get_dice_ovary, get_dice_follicle, get_hd
 import multiprocessing
 multiprocessing.set_start_method('spawn', True)
 
@@ -76,6 +76,7 @@ def infer(valid_loader, model):
             logits = model(inputs)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
+        hd,sd=get_hd(logits,targets)
         save_mask = False
         if save_mask:
             pred = logits.cpu().numpy()
