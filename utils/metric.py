@@ -1,5 +1,7 @@
 " avergeMeter,bestMeter,dice"
 import numpy as np
+import hausdorff as hd
+import cv2
 
 
 class BestMeter(object):
@@ -94,3 +96,26 @@ def get_dice_ovary(pred, mask):
         intersection = (iflaten * tflaten).sum()
         dice += (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
     return dice/mask.shape[0]
+
+
+def get_hd(pred, mask):
+    "calculate the hausdorff distance (in euclidean space)  in between follicle contours"
+    pred = pred.cpu().numpy()
+    pred = np.argmax(pred, 1)
+    pred[pred == 2] = 0
+    mask = mask.cpu().numpy()
+    mask = np.argmax(mask, 1)
+    mask[mask == 2] = 0
+    for i in range(mask.shape[0]):
+        _, predi = cv2.threshold(pred[i, ...].copy().astype(np.uint8), 0, 1, 0)
+        _, maski = cv2.threshold(mask[i, ...].copy().astype(np.uint8), 0, 1, 0)
+        _, cp, _ = cv2.findContours(predi.astype(
+            np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        _, cm, _ = cv2.findContours(maski.astype(
+            np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+        hd = cv2.createHausdorffDistanceExtractor()
+        cps=np.concatenate(cp,axis=0)
+        cms=np.concatenate(cm,axis=0)
+        d1 = hd.computeDistance(cps, cms)
+    return d1
