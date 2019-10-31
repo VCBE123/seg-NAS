@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,6', help='GPU device id')
+                    default='0,1,2,3', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -59,7 +59,7 @@ parser.add_argument('--add_width', action='append',
 parser.add_argument('--add_layers', action='append',
                     default=['0'], help='add layers')
 parser.add_argument('--debug', default='')
-parser.add_argument('--arch', default='nasray_v1')
+parser.add_argument('--arch', default='nasray')
 parser.add_argument('--classes', default=3)
 args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus

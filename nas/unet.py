@@ -78,22 +78,23 @@ class Unet(nn.Module):
 
     def __init__(self, c_in=1, c_out=1):
         super(Unet, self).__init__()
-        self.conv1 = ConvBlock(c_in, 32)
-        self.conv2 = ConvBlock(32, 64)
-        self.conv3 = ConvBlock(64, 128)
-        self.conv4 = ConvBlock(128, 256)
-        self.conv5 = ConvBlock(256, 512)
+        self.conv1 = ConvBlock(c_in, 64)
+        self.conv2 = ConvBlock(64, 128)
+        self.conv3 = ConvBlock(128, 256)
+        self.conv4 = ConvBlock(256, 512)
+        self.conv5 = ConvBlock(512, 1024)
+        
 
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.up5 = UpConv(512, 256)
-        self.up_conv5 = ConvBlock(512, 256)
-        self.up4 = UpConv(256, 128)
-        self.up_conv4 = ConvBlock(256, 128)
-        self.up3 = UpConv(128, 64)
-        self.up_conv3 = ConvBlock(128, 64)
-        self.up2 = UpConv(64, 32)
-        self.up_conv2 = ConvBlock(64, 32)
-        self.up_conv1 = nn.Conv2d(32, c_out, kernel_size=1)
+        self.up5 = UpConv(1024, 512)
+        self.up_conv5 = ConvBlock(1024, 512)
+        self.up4 = UpConv(512, 256)
+        self.up_conv4 = ConvBlock(512, 256)
+        self.up3 = UpConv(256, 128)
+        self.up_conv3 = ConvBlock(256, 128)
+        self.up2 = UpConv(128, 64)
+        self.up_conv2 = ConvBlock(128, 64)
+        self.up_conv1 = nn.Conv2d(64, c_out, kernel_size=1)
 
     def forward(self, x):
         x_1 = self.conv1(x)
