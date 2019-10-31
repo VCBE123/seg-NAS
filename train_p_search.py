@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 import copy
-from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet
+from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet, NASRayNet_v1
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
@@ -59,7 +59,7 @@ parser.add_argument('--add_width', action='append',
 parser.add_argument('--add_layers', action='append',
                     default=['0'], help='add layers')
 parser.add_argument('--debug', default='')
-parser.add_argument('--arch', default='nasunet')
+parser.add_argument('--arch', default='nasray_v1')
 parser.add_argument('--classes', default=3)
 args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
@@ -139,7 +139,7 @@ def main():
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         # 4, switches_normal=switches_normal, switches_reduce=switches_reduce)
-        model = NASRayNet(switches_normal=switches_normal,
+        model = NASRayNet_v1(switches_normal=switches_normal,
                           switches_expansion=switches_reduce)
 
         model = nn.DataParallel(model)
