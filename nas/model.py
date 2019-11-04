@@ -208,7 +208,8 @@ class NASRayNetEval(nn.Module):
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        aspp = self.aspp(middle_feature[-1])
+        # aspp = self.aspp(middle_feature[-1])
+        aspp =middle_feature[-1]
 
         decode1 = self.decode_cell(aspp, middle_feature[-2])
 

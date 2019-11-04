@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEval, ray2, RayNet_v0
+from nas import NASRayNetEval, ray2, RayNet_v0, ray3
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle, get_hd
 import multiprocessing
@@ -43,7 +43,7 @@ def main():
     torch.cuda.manual_seed(ARGS.seed)
 
     # model = NASRayNetEval(genotype=ray2)
-    model = RayNet_v0()
+    model = NASRayNetEval(genotype=ray3)
     model = nn.DataParallel(model)
     model = model.cuda()
 
