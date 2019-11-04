@@ -23,20 +23,20 @@ def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=32)
-    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=250)
+    parser.add_argument('--epochs', type=int, default=40)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='unet_scratch')
+    parser.add_argument('--arch', default='unet_standard')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,1,2')
+    parser.add_argument('--gpus', default='3,4,5')
     return parser.parse_args()
 
 
@@ -80,7 +80,7 @@ def main():
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
     train_loader, val_loader = get_follicle(ARGS, train_aug=False)
-    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100,50,30],gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,30,35],gamma=0.1)
     best_dice = 0
 
     for epoch in range(ARGS.epochs):

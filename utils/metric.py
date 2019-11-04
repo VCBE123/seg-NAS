@@ -1,6 +1,5 @@
 " avergeMeter,bestMeter,dice"
 import numpy as np
-import hausdorff as hd
 import cv2
 
 
