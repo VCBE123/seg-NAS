@@ -25,3 +25,5 @@ ray1 = Genotype(normal=[('se', 0), ('sep_conv_3x3', 1), ('sep_conv_3x3', 1), ('m
                 reduce=[('dil_conv_5x5', 0), ('sep_conv_3x3', 1), ('sep_conv_3x3', 1), ('md_conv_35', 2), ('dil_conv_3x3', 1), ('dil_conv_5x5', 3), ('dil_conv_5x5', 1), ('dil_conv_3x3', 3)], reduce_concat=range(2, 6))
 ray2 = Genotype(normal=[('se', 0), ('sep_conv_3x3', 1), ('se', 0), ('se', 1), ('se', 0), ('md_conv_357', 3), ('se', 0), ('md_conv_35', 2)], normal_concat=range(2, 6), reduce=[
                 ('sep_conv_5x5', 0), ('md_conv_357', 1), ('dil_conv_3x3', 1), ('md_conv_357', 2), ('dil_conv_5x5', 1), ('sep_conv_3x3', 3), ('dil_conv_5x5', 3), ('sep_conv_3x3', 4)], reduce_concat=range(2, 6))
+ray3= Genotype(normal=[('se', 0), ('se', 1), ('sep_conv_3x3', 1), ('md_conv_357', 2), ('se', 0), ('se', 1), ('se', 0), ('md_conv_35', 3)], normal_concat=range(2, 6), reduce=[('se', 0),
+ ('dil_conv_3x3', 1), ('dil_conv_3x3', 1), ('md_conv_357', 2), ('sep_conv_5x5', 1), ('sep_conv_5x5', 2), ('dil_conv_3x3', 1), ('dil_conv_5x5', 3)], reduce_concat=range(2, 6))
