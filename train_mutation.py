@@ -262,23 +262,23 @@ def main():
             genotype = parse_network(switches_normal, switches_reduce)
             logging.info(genotype)
             # restrict skipconnect (normal cell only)
-            logging.info('Restricting skipconnect...')
+            # logging.info('Restricting skipconnect...')
             # generating genotypes with different numbers of skip-connect operations
-            for sks in range(0, 9):
-                max_sk = 8 - sks
-                num_sk = check_sk_number(switches_normal)
-                if not num_sk > max_sk:
-                    continue
-                while num_sk > max_sk:
-                    normal_prob = delete_min_sk_prob(
-                        switches_normal, switches_normal_2, normal_prob)
-                    switches_normal = keep_1_on(switches_normal_2, normal_prob)
-                    switches_normal = keep_2_branches(
-                        switches_normal, normal_prob)
-                    num_sk = check_sk_number(switches_normal)
-                logging.info('Number of skip-connect: %d', max_sk)
-                genotype = parse_network(switches_normal, switches_reduce)
-                logging.info(genotype)
+            # for sks in range(0, 9):
+            #     max_sk = 8 - sks
+            #     num_sk = check_sk_number(switches_normal)
+            #     if not num_sk > max_sk:
+            #         continue
+            #     while num_sk > max_sk:
+            #         normal_prob = delete_min_sk_prob(
+            #             switches_normal, switches_normal_2, normal_prob)
+            #         switches_normal = keep_1_on(switches_normal_2, normal_prob)
+            #         switches_normal = keep_2_branches(
+            #             switches_normal, normal_prob)
+            #         num_sk = check_sk_number(switches_normal)
+            #     logging.info('Number of skip-connect: %d', max_sk)
+            #     genotype = parse_network(switches_normal, switches_reduce)
+            #     logging.info(genotype)
 
     try:
         notice('finish search nasunet', message="epoch:{}".format(epoch))
