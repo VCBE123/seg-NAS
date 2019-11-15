@@ -272,10 +272,10 @@ class NASRayNet_v1(nn.Module):
             ons = 0
         self.switch_on = switch_ons[0]
         self.encode = mixnet_xl(pretrained=pretrained,
-                                num_classes=num_classes, head_conv=None)  # 48-96-96 64-48-48 128-24-24 320-12-12
-        self.aspp = ASSP(in_channels=320, output_stride=8)
+                                num_classes=num_classes)  # 48-96-96 64-48-48 128-24-24 320-12-12
+        # self.aspp = ASSP(in_channels=320, output_stride=8)
         self.decode_cell = CellDecode(
-            256,64, switches=switches_expansion, expan_scale=2)
+            1536,64, switches=switches_expansion, expan_scale=2)
         self.decode_cell_1 = CellDecode(
             256,64, switches=switches_expansion, expan_scale=2)
         self.decode_cell_2 = CellDecode(
@@ -293,7 +293,7 @@ class NASRayNet_v1(nn.Module):
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        aspp = self.aspp(middle_feature[-1])
+        aspp = middle_feature[-1]
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
         decode = self.decode_cell(aspp, weights)

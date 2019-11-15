@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,3', help='GPU device id')
+                    default='0,1,2,7', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -45,12 +45,12 @@ parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float,
                     default=5, help='gradient clipping')
 parser.add_argument('--train_portion', type=float,
-                    default=0.7, help='portion of training data')
+                    default=0.5, help='portion of training data')
 parser.add_argument('--arch_learning_rate', type=float,
                     default=6e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float,
                     default=1e-3, help='weight decay for arch encoding')
-parser.add_argument('--note', type=str, default='nas-unet',
+parser.add_argument('--note', type=str, default='nas-wo-aspp',
                     help='note for this run')
 parser.add_argument('--dropout_rate', action='append',
                     default=[], help='dropout rate of skip connect')
