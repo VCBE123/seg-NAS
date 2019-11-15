@@ -20,7 +20,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_di
 parser = argparse.ArgumentParser("p-search nas-unet")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
-parser.add_argument('--batch_size', type=int, default=12, help='batch size')
+parser.add_argument('--batch_size', type=int, default=10, help='batch size')
 parser.add_argument('--learning_rate', type=float,
                     default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,7', help='GPU device id')
+                    default='0,1,2,4', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
