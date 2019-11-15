@@ -394,6 +394,7 @@ class DeepLab(nn.Module):
         H, W = x.size(2), x.size(3)
         x, low_level_features = self.backbone(x)
         x = self.ASSP(x)
+        
         x = self.decoder(x, low_level_features)
         x = F.interpolate(x, size=(H, W), mode='bilinear', align_corners=True)
         x = F.softmax(x, dim=1)

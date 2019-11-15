@@ -271,8 +271,7 @@ class NASRayNet_v1(nn.Module):
             switch_ons.append(ons)
             ons = 0
         self.switch_on = switch_ons[0]
-        self.encode = mixnet_xl(pretrained=pretrained,
-                                num_classes=num_classes,head_conv=None)  # 48-96-96 64-48-48 128-24-24 320-12-12
+        self.encode = mixnet_xl(pretrained=pretrained, num_classes=num_classes,head_conv=None)  # 48-96-96 64-48-48 128-24-24 320-12-12
         self.aspp = ASSP(in_channels=320, output_stride=8)
         # self.reduce=nn.Conv2d(1536,128,1,1)
         self.decode_cell = CellDecode(

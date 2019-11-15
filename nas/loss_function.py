@@ -41,6 +41,4 @@ class WeightDiceLoss(nn.Module):
             (output.sum(dim=-1)+target.sum(dim=-1)+self.smooth)
         if self.weight:
             loss *= weight
-        if self.ignore:  # ignore the background
-            loss = loss[:, [1, 2]]
-        return loss.sum()
+        return loss.sum()/batch
