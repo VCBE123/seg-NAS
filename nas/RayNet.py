@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from inspect import isfunction
-from nas.Mix import mixnet_xl
+from Mix import mixnet_xl
 
 
 def initialize_weights(*nnmodels):
