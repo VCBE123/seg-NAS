@@ -31,12 +31,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='nasray_ray2_aspp_aug_false')
+    parser.add_argument('--arch', default='nasray_ray2_aspp_4cell')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='2,3,4')
+    parser.add_argument('--gpus', default='5,6,7')
     return parser.parse_args()
 
 
