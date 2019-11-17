@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3
+from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3,NASRayNetEvalDense
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -68,7 +68,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = NASRayNetEval(genotype=ray2)
+    model = NASRayNetEvalDense(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
