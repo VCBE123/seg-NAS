@@ -36,7 +36,7 @@ class FollicleDataset(Dataset):
         return image, label
 
 
-def get_follicle(args, train_aug=True, test_aug=False):
+def get_follicle(args, train_aug=False, test_aug=False):
     "return trainloader,testloader"
     train_trans = ImgAugTrans(crop_size=384, aug=train_aug)
     test_trans = ImgAugTrans(crop_size=384, aug=test_aug)
