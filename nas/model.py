@@ -194,8 +194,8 @@ class NASRayNetEval(nn.Module):
         super(NASRayNetEval, self).__init__()
         self.encode = mixnet_xl(pretrained=pretrained,
                                 num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        # self.aspp = ASSP(in_channels=320, output_stride=16)
-        self.decode_cell = CellDecode(genotype, 320, 128, 64, expansion_prev=True)
+        self.aspp = ASSP(in_channels=320, output_stride=16)
+        self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
 
         self.low_cell = Cell(genotype, 48, 64, 32,reduction=False, reduction_prev=True)
 
@@ -208,8 +208,8 @@ class NASRayNetEval(nn.Module):
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        # aspp = self.aspp(middle_feature[-1])
-        aspp =middle_feature[-1]
+        aspp = self.aspp(middle_feature[-1])
+        # aspp =middle_feature[-1]
 
         decode1 = self.decode_cell(aspp, middle_feature[-2])
 
