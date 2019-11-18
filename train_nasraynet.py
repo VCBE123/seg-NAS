@@ -22,7 +22,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_c
 def get_parser():
     "parser argument"
     parser = argparse.ArgumentParser(description='train unet')
-    parser.add_argument('--workers', type=int, default=32)
+    parser.add_argument('--workers', type=int, default=8)
     parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
