@@ -108,9 +108,9 @@ def get_hd(pred, mask):
     for i in range(mask.shape[0]):
         _, predi = cv2.threshold(pred[i, ...].copy().astype(np.uint8), 0, 1, 0)
         _, maski = cv2.threshold(mask[i, ...].copy().astype(np.uint8), 0, 1, 0)
-        _, cp,  = cv2.findContours(predi.astype(
+        _, cp  = cv2.findContours(predi.astype(
             np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        _, cm,  = cv2.findContours(maski.astype(
+        _, cm  = cv2.findContours(maski.astype(
             np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
         hd = cv2.createHausdorffDistanceExtractor()
