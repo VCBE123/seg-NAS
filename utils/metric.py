@@ -105,16 +105,16 @@ def get_hd(pred, mask):
     mask = mask.cpu().numpy()
     mask = np.argmax(mask, 1)
     mask[mask == 2] = 0
+    hd = cv2.createHausdorffDistanceExtractor()
     for i in range(mask.shape[0]):
         _, predi = cv2.threshold(pred[i, ...].copy().astype(np.uint8), 0, 1, 0)
         _, maski = cv2.threshold(mask[i, ...].copy().astype(np.uint8), 0, 1, 0)
-        _, cp  = cv2.findContours(predi.astype(
+        cp,_  = cv2.findContours(predi.astype(
             np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-        _, cm  = cv2.findContours(maski.astype(
+        cm,_  = cv2.findContours(maski.astype(
             np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
-        hd = cv2.createHausdorffDistanceExtractor()
         cps=np.concatenate(cp,axis=0)
         cms=np.concatenate(cm,axis=0)
-        d1 = hd.computeDistance(cps, cms)
+    d1 = hd.computeDistance(cps, cms)
     return d1
