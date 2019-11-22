@@ -246,12 +246,14 @@ class NASRayNetEvalDense(nn.Module):
         self.low_cell3 = Cell(genotype, 128, 192, 16,reduction=False, reduction_prev=False)
         self.low_cell4 = Cell(genotype, 192, 256, 16,reduction=False, reduction_prev=False)
 
-        self.outcell1 = CellDecode( genotype,256, 64, 32,expansion=True, expansion_prev=True)
-        self.cell1 = Cell(genotype, 48, 176, 32,reduction=False, reduction_prev=False)
-        self.cell2 = Cell(genotype, 176, 304, 32,reduction=False, reduction_prev=False)
-        self.cell3 = Cell(genotype, 304, 432, 32,reduction=False, reduction_prev=False)
+        self.outcell1 = CellDecode( genotype,256, 64, 16,expansion=True, expansion_prev=True)
+        self.cell1 = Cell(genotype, 48, 112, 16,reduction=False, reduction_prev=False)
+        self.cell2 = Cell(genotype, 112, 176, 16,reduction=False, reduction_prev=False)
+        self.cell3 = Cell(genotype, 176, 240, 16,reduction=False, reduction_prev=False)
+        self.cell4 = Cell(genotype, 240, 304, 16,reduction=False, reduction_prev=False)
+        self.cell5 = Cell(genotype, 304, 368, 16,reduction=False, reduction_prev=False)
 
-        self.out = SepConv(560, num_classes, 1, 1, 0)
+        self.out = SepConv(432, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample( scale_factor=4, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
@@ -279,7 +281,13 @@ class NASRayNetEvalDense(nn.Module):
         out3=torch.cat([out2,out3],1)
         out4= self.cell3(out2,out3)
         out4=torch.cat([out3,out4],1)
-        out = self.out(out4)
+
+        out5=self.cell4(out3,out4)
+
+        out5=torch.cat([out4,out5],1)
+        out6=self.cell5(out4,out5)
+        out6=torch.cat([out5,out6],1)
+        out = self.out(out6)
         out = self.up4(out)
         out = torch.softmax(out, 1)
         return out
