@@ -8,3 +8,4 @@ from .RayNet import RayNet, RayNet_v0, ASSP, SepConv
 from .model import NASseg, NASRayNetEval,NASRayNetEvalDense
 from .Mix import mixnet_xl
 from .RayNet_search import NASRayNet, NASRayNet_v1
+from .multi_op import MultipleOptimizer
