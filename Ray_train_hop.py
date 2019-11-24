@@ -72,30 +72,37 @@ def train_follicle(config):
 
     multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
 
-    lr_scheduler_encoder=torch.optim.lr_scheduler.StepLR(optimizer_encoder,step_size=config["step"],gamma=0.1)
-    lr_scheduler_decoder=torch.optim.lr_scheduler.StepLR(optimizer_decoder,step_size=config["step"],gamma=0.1)
+    lr_scheduler_encoder = torch.optim.lr_scheduler.StepLR(
+        optimizer_encoder, step_size=config["step"], gamma=0.1)
+    lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
+        optimizer_decoder, step_size=config["step"], gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle( config["batch_size"], 8, train_aug=True)
+    train_loader, val_loader = get_follicle(
+        config["batch_size"], 8, train_aug=True)
     best_dice_follicle = 0
     for epoch in range(ARGS.epochs):
         current_lr_encoder = optimizer_encoder.param_groups[0]['lr']
         current_lr_decoder = optimizer_decoder.param_groups[0]['lr']
-        train_loss = train( train_loader, model, criterion, multop,accumulate=config["accumulate"])
+        train_loss = train(train_loader, model, criterion,
+                           multop, accumulate=config["accumulate"])
         lr_scheduler_encoder.step()
         lr_scheduler_decoder.step()
-        valid_dice_follicle, valid_dice_ovary, valid_loss = infer( val_loader, model, criterion)
+        valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
+            val_loader, model, criterion)
         is_best = False
-        if valid_dice_ovary > best_dice:
-            best_dice = valid_dice_ovary
+        if valid_dice_follicle > best_dice_follicle:
+            best_dice_follicle = valid_dice_follicle
             is_best = True
-            try:
-                notice('validation-search', message="epoch:{} best_dice:{}".format(epoch, best_dice_follicle))
-            finally:
-                pass
+            if valid_dice_follicle>0.89:
+                try:
+                    notice('validation-search',
+                        message="epoch:{} best_dice:{}".format(epoch, best_dice_follicle))
+                finally:
+                    pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
-                         'best_dice': best_dice, 'optimizer': optimizer_decoder.state_dict()}, is_best, "")
-        track.log(lr_encoder=current_lr_encoder,lr_decoder=current_lr_decoder,train_loss=train_loss,valid_loss=valid_loss,
-        valid_dice_follicle=valid_dice_follicle,valid_dice_ovary=valid_dice_ovary,best_dice_follicle=best_dice_follicle)
+                         'best_dice_follicle': best_dice_follicle, 'optimizer': optimizer_decoder.state_dict()}, is_best, "")
+        track.log(lr_encoder=current_lr_encoder, lr_decoder=current_lr_decoder, train_loss=train_loss, valid_loss=valid_loss,
+                  valid_dice_follicle=valid_dice_follicle, valid_dice_ovary=valid_dice_ovary, best_dice_follicle=best_dice_follicle)
 
 
 def train(train_loader, model, criterion, optimizer, accumulate):
@@ -110,9 +117,9 @@ def train(train_loader, model, criterion, optimizer, accumulate):
         loss = criterion(logits, target)
         optimizer.zero_grad()
         loss.backward()
-        if step%accumulate:
+        if step % accumulate:
             optimizer.step()
-        objs.update(loss.data.item(),inputs.size(0))
+        objs.update(loss.data.item(), inputs.size(0))
     return objs.avg
 
 
@@ -131,25 +138,26 @@ def infer(valid_loader, model, criterion):
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
         batch_size = inputs.size(0)
-        objs.update(loss, batch_size)
+        objs.update(loss.data.item(), batch_size)
         dice_follicle_meter.update(dice_follicle, batch_size)
         dice_ovary_meter.update(dice_ovary, batch_size)
     return dice_follicle_meter.avg, dice_ovary_meter.avg, objs.avg,
 
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"]='0,1,2,3,4,5'
     ray.init(num_gpus=6, ignore_reinit_error=True)
-    sched = ASHAScheduler(metric="best_follicle_dice", mode="max")
+    sched = ASHAScheduler(metric="best_dice_follicle", mode="max")
     search_space = {"learning_rate": tune.choice([1e-3, 5e-4, 1e-4, 5e-3]),
                     "step": tune.choice([5, 7, 9, 11, 13]),
                     "weight_decay": tune.choice([1e-4, 1e-5, 1e-3]),
                     "accumulate": tune.choice([1, 2, 4, 6, 8]),
                     "batch_size": tune.choice([8, 12, 16]),
-                    "times":tune.choice([1,2,3,4,5])}
+                    "times": tune.choice([1, 2, 3, 4, 5])}
     analysis = tune.run(
         train_follicle,
         scheduler=sched,
         num_samples=100,
-        stop={"best_follicle_dice": 90.0},
+        stop={"best_dice_follicle": 90.0},
         resources_per_trial={"cpu": 8, "gpu": 3}, config=search_space)
-    print("Best config:", analysis.get_best_config(metric="best_follicle_dice"))
+    print("Best config:", analysis.get_best_config(metric="best_dice_follicle"))
