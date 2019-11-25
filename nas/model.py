@@ -239,7 +239,7 @@ class NASRayNetEvalDense(nn.Module):
         self.encode = mixnet_xl(pretrained=pretrained,
                                 num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
         self.aspp = ASSP(in_channels=320, output_stride=16)
-        self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
+        self.decode_cell = CellDecode(genotype, 256, 192, 64, expansion_prev=True)
 
         self.low_cell1 = Cell(genotype, 48, 64, 16,reduction=False, reduction_prev=True)
         self.low_cell2 = Cell(genotype, 64,  128, 16,reduction=False, reduction_prev=False)
