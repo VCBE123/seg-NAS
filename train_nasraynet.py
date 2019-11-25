@@ -103,7 +103,8 @@ def main():
         epoch_start = time.time()
         train_loss = train(
             train_loader, model, criterion, multop)
-
+        lr_scheduler_decoder.step()
+        lr_scheduler_encoder.step()
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
