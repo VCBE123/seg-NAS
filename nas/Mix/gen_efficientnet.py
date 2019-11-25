@@ -872,7 +872,7 @@ class GenEfficientNet(nn.Module):
             x = self.conv_head(x)
             # no BN
             x = self.act_fn(x, inplace=True)
-            out.append(x)
+            # out.append(x)
             if pool:
                 # expect flattened output if pool is true, otherwise keep dim
                 x = x.view(x.size(0), -1)
@@ -881,7 +881,7 @@ class GenEfficientNet(nn.Module):
                 x = self.conv_head(x)
                 x = self.bn2(x)
             x = self.act_fn(x, inplace=True)
-            out.append(x)
+            # out.append(x)
             if pool:
                 x = self.global_pool(x)
                 x = x.view(x.size(0), -1)
