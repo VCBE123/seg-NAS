@@ -80,7 +80,7 @@ def main():
     logging.info("using gpus: %d", num_gpus)
 
     train_trans = ImgAugTrans(384)
-    traindata = FollicleDataset('/data/follicle/eval.txt', train_trans)
+    traindata = FollicleDataset('/data/follicle/train_pain.txt', train_trans)
     num_train = len(traindata)
     indices = list(range(num_train))
     split = int(np.floor(ARGS.train_portion*num_train))
