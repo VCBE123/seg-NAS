@@ -17,7 +17,7 @@ from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet, NASRayNet_v1
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
-parser = argparse.ArgumentParser("p-search nas-unet")
+parser = argparse.ArgumentParser("p-search nas-Ray")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
 parser.add_argument('--batch_size', type=int, default=10, help='batch size')
@@ -139,7 +139,7 @@ def main():
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         # 4, switches_normal=switches_normal, switches_reduce=switches_reduce)
-        model = NASRayNet_v1(switches_normal=switches_normal,
+        model = NASRayNetg (switches_normal=switches_normal,
                           switches_expansion=switches_reduce)
 
         model = nn.DataParallel(model)
