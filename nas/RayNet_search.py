@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from .genotype import PRIMITIVES
 from .operation import OPS, ReLUConvBN, FactorizedReduce
-from .Mix import mixnet_xl
+from nas.Mix import mixnet_xl
+from .model_search import CellSearch, CellDecode
 
 
 def initialize_weights(*nnmodels):
@@ -119,73 +120,73 @@ class MixedOp(nn.Module):
         return sum(w*operation(x) for w, operation in zip(weights, self.m_op))
 
 
-class CellNormal(nn.Module):
-    " Normal Cell structure for searching"
+# class CellNormal(nn.Module):
+#     " Normal Cell structure for searching"
 
-    def __init__(self, c_pp, c_p, C, switches, reduce_prev=True):
-        super(CellNormal, self).__init__()
-        self.reduce_prev = reduce_prev
-        if self.reduce_prev:
-            self.preprocess0 = FactorizedReduce(c_pp, C, affine=False)
-        else:
-            self.preprocess0 = ReLUConvBN(c_pp, C, 1, 1, 0, affine=False)
+#     def __init__(self, c_pp, c_p, C, switches, reduce_prev=True):
+#         super(CellNormal, self).__init__()
+#         self.reduce_prev = reduce_prev
+#         if self.reduce_prev:
+#             self.preprocess0 = FactorizedReduce(c_pp, C, affine=False)
+#         else:
+#             self.preprocess0 = ReLUConvBN(c_pp, C, 1, 1, 0, affine=False)
 
-        self.preprocess1 = ReLUConvBN(c_p, C, 1, 1, 0, affine=False)
-        self._steps = 4
-        self._multiplier = 3
-        self.cell_ops = nn.ModuleList()
-        switch_count = 0
-        for i in range(self._steps):
-            for j in range(2+i):
-                stride = 1
-                operation = MixedOp(C, stride, switch=switches[switch_count])
-                self.cell_ops.append(operation)
-                switch_count += 1
+#         self.preprocess1 = ReLUConvBN(c_p, C, 1, 1, 0, affine=False)
+#         self._steps = 4
+#         self._multiplier = 3
+#         self.cell_ops = nn.ModuleList()
+#         switch_count = 0
+#         for i in range(self._steps):
+#             for j in range(2+i):
+#                 stride = 1
+#                 operation = MixedOp(C, stride, switch=switches[switch_count])
+#                 self.cell_ops.append(operation)
+#                 switch_count += 1
 
-    def forward(self, s0, s1, weights):
-        s0 = self.preprocess0(s0)
-        s1 = self.preprocess1(s1)
-        states = [s0, s1]
-        offset = 0
-        for _ in range(self._steps):
-            sum_ = sum(self.cell_ops[offset+j](h, weights[offset+j])
-                       for j, h in enumerate(states))
-            offset += len(states)
-            states.append(sum_)
-        return torch.cat(states[-self._multiplier:], dim=1)
+#     def forward(self, s0, s1, weights):
+#         s0 = self.preprocess0(s0)
+#         s1 = self.preprocess1(s1)
+#         states = [s0, s1]
+#         offset = 0
+#         for _ in range(self._steps):
+#             sum_ = sum(self.cell_ops[offset+j](h, weights[offset+j])
+#                        for j, h in enumerate(states))
+#             offset += len(states)
+#             states.append(sum_)
+#         return torch.cat(states[-self._multiplier:], dim=1)
 
 
-class CellDecode(nn.Module):
-    "Decoder Cell structure for searching"
+# class CellDecode(nn.Module):
+#     "Decoder Cell structure for searching"
 
-    def __init__(self,CP, C, switches, expan_scale=2):
-        super(CellDecode, self).__init__()
-        self._steps = 4
-        self._multiplier = 4
-        self.expan_scale = expan_scale
-        self.preprocess=ReLUConvBN(CP,C,3,1,1)        
-        self.cell_ops = nn.ModuleList()
-        switch_count = 0
-        for i in range(self._steps):
-            for j in range(2+i):
-                stride = 1
-                operation = MixedOp(C, stride, switch=switches[switch_count])
-                self.cell_ops.append(operation)
-                switch_count += 1
+#     def __init__(self, CPP, CP, C, switches, expan_scale=2):
+#         super(CellDecode, self).__init__()
+#         self._steps = 4
+#         self._multiplier = 4
+#         self.expan_scale = expan_scale
+#         self.preprocess = ReLUConvBN(CP, C, 3, 1, 1)
+#         self.cell_ops = nn.ModuleList()
+#         switch_count = 0
+#         for i in range(self._steps):
+#             for j in range(2+i):
+#                 stride = 1
+#                 operation = MixedOp(C, stride, switch=switches[switch_count])
+#                 self.cell_ops.append(operation)
+#                 switch_count += 1
 
-    def forward(self, s0, weights):
-        if self.expan_scale > 1:
-            s0 = F.interpolate(s0, scale_factor=self.expan_scale,
-                               mode='bilinear', align_corners=True)
-        s0=self.preprocess(s0)
-        states = [s0, s0]
-        offset = 0
-        for _ in range(self._steps):
-            sum_ = sum(self.cell_ops[offset+j](h, weights[offset+j])
-                       for j, h in enumerate(states))
-            offset += len(states)
-            states.append(sum_)
-        return torch.cat(states[-self._multiplier:], dim=1)
+#     def forward(self, s0, weights):
+#         if self.expan_scale > 1:
+#             s0 = F.interpolate(s0, scale_factor=self.expan_scale,
+#                                mode='bilinear', align_corners=True)
+#         s0 = self.preprocess(s0)
+#         states = [s0, s0]
+#         offset = 0
+#         for _ in range(self._steps):
+#             sum_ = sum(self.cell_ops[offset+j](h, weights[offset+j])
+#                        for j, h in enumerate(states))
+#             offset += len(states)
+#             states.append(sum_)
+#         return torch.cat(states[-self._multiplier:], dim=1)
 
 
 class NASRayNet(nn.Module):
@@ -205,36 +206,41 @@ class NASRayNet(nn.Module):
         self.switch_on = switch_ons[0]
         self.encode = mixnet_xl(pretrained=pretrained,
                                 num_classes=num_classes, head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        # self.aspp = ASSP(in_channels=320, output_stride=16)
-        self.decode_cell = CellDecode(
-            320, 128, 64, switches=switches_expansion, expansion_prev=True)
-        self.low_cell = CellNormal(48, 64, 32, switches_normal)
+        self.aspp = ASSP(in_channels=192, output_stride=16)
+        self.decode_cell1 = CellDecode(4,4, 192, 256, 64, switches=switches_expansion)
+        self.decode_cell2 = CellDecode(4,4, 128, 256, 64, switches=switches_expansion,expansion_prev=True)
 
-        self.outcell1 = CellDecode(
-            192, 96, 64, switches_expansion, expansion_prev=False)
+        self.low_cell = CellSearch(4,4,48, 64, 16,True, switches_normal)
 
-        self.out = SepConv(192, num_classes, 1, 1, 0)
-        self.up4 = nn.Upsample(
-            scale_factor=4, mode='bilinear', align_corners=True)
+        self.outcell1 = CellDecode(4,4, 64, 256, 32,switches_expansion, expansion_prev=True)
+        self.outcell2= CellSearch(4,4,192,168,32,False,switches_normal)
+        self.outcell3= CellSearch(4,4,192,168,32,False,switches_normal)
+
+        self.out = SepConv(128, num_classes, 1, 1, 0)
+        self.up2 = nn.Upsample(
+            scale_factor=2, mode='bilinear', align_corners=True)
         self._initialize_alphas()
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        # aspp = self.aspp(middle_feature[-1])
-        aspp=middle_feature[-1]
+        aspp = self.aspp(middle_feature[-2])            # 128-24-24
+        # aspp = middle_feature[-1]
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
-        decode1 = self.decode_cell(aspp, middle_feature[-2], weights)
+        decode1 = self.decode_cell1(middle_feature[-2],aspp, weights)
+        decode2 = self.decode_cell2(middle_feature[-3],decode1, weights)
 
         weights = F.softmax(self.alphas_normal, dim=-1)
-        low_feat1 = self.low_cell(
-            middle_feature[0], middle_feature[1], weights)
+        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1], weights)
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
 
-        out = self.outcell1(decode1, low_feat1, weights)
+        out = self.outcell1(low_feat1, decode2, weights)
+        # out = self.outcell2(out,middle_feature[0])
+        # out = self.outcell3(out,middle_feature[0])
+
         out = self.out(out)
-        out = self.up4(out)
+        out = self.up2(out)
         out = torch.softmax(out, 1)
         return out
 
@@ -271,20 +277,22 @@ class NASRayNet_v1(nn.Module):
             switch_ons.append(ons)
             ons = 0
         self.switch_on = switch_ons[0]
-        self.encode = mixnet_xl(pretrained=pretrained, num_classes=num_classes,head_conv=None)  # 48-96-96 64-48-48 128-24-24 320-12-12
+        # 48-96-96 64-48-48 128-24-24 320-12-12
+        self.encode = mixnet_xl(pretrained=pretrained,
+                                num_classes=num_classes, head_conv=None)
         self.aspp = ASSP(in_channels=320, output_stride=8)
         # self.reduce=nn.Conv2d(1536,128,1,1)
         self.decode_cell = CellDecode(
-            256,64, switches=switches_expansion, expan_scale=2)
+            256, 64, switches=switches_expansion, expan_scale=2)
         self.decode_cell_1 = CellDecode(
-            256,64, switches=switches_expansion, expan_scale=2)
+            256, 64, switches=switches_expansion, expan_scale=2)
         self.decode_cell_2 = CellDecode(
-            256,64, switches=switches_expansion, expan_scale=2)
+            256, 64, switches=switches_expansion, expan_scale=2)
         self.low_cell = CellNormal(
             48, 48, 64, switches_normal, reduce_prev=False)
 
-        self.outcell1 = CellDecode(448,128, switches_expansion, expan_scale=1)
-        self.outcell2 = CellDecode(512,128, switches_expansion, expan_scale=1)
+        self.outcell1 = CellDecode(448, 128, switches_expansion, expan_scale=1)
+        self.outcell2 = CellDecode(512, 128, switches_expansion, expan_scale=1)
 
         self.out = SepConv(512, num_classes, 1, 1, 0)
         self.up4 = nn.Upsample(
@@ -306,7 +314,7 @@ class NASRayNet_v1(nn.Module):
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
 
-        out = torch.cat([low_feat1, decode],dim=1)
+        out = torch.cat([low_feat1, decode], dim=1)
 
         out = self.outcell1(out, weights)
         out = self.outcell2(out, weights)
@@ -342,7 +350,7 @@ if __name__ == '__main__':
     switches_normal = copy.deepcopy(switches)
     switches_expansion = copy.deepcopy(switches)
     criterion = nn.BCELoss()
-    net = NASRayNet_v1(switches_normal=switches_normal,
+    net = NASRayNet(switches_normal=switches_normal,
                        switches_expansion=switches_expansion)
 
     inputs = torch.randn([2, 3, 384, 384])

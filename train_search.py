@@ -23,7 +23,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_di
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train unet')
+    parser = argparse.ArgumentParser(description='train search new')
     parser.add_argument('--workers', type=int, default=32)
     parser.add_argument('--batch_size', type=int, default=25)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
@@ -32,7 +32,7 @@ def get_parser():
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=2)
-    parser.add_argument('--save', type=str, default='logs')
+    parser.add_argument('--save', type=str, default='Search_Dense')
     parser.add_argument('--seed', default=0)
     parser.add_argument('--train_portion', default=0.7,
                         help='the partion for update weights')
@@ -80,7 +80,7 @@ def main():
     logging.info("using gpus: %d", num_gpus)
 
     train_trans = ImgAugTrans(384)
-    traindata = FollicleDataset('/data/follicle/eval.txt', train_trans)
+    traindata = FollicleDataset('/data/follicle/train_pain.txt', train_trans)
     num_train = len(traindata)
     indices = list(range(num_train))
     split = int(np.floor(ARGS.train_portion*num_train))

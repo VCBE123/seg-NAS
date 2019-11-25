@@ -10,9 +10,8 @@ from tensorboardX import SummaryWriter
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-
 import numpy as np
-from nas import RayNet, WeightDiceLoss
+from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3, NASRayNetEvalDense, MultipleOptimizer
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -21,22 +20,22 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_c
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train raynet')
-    parser.add_argument('--workers', type=int, default=24)
-    parser.add_argument('--batch_size', type=int, default=24)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser = argparse.ArgumentParser(description='train unet')
+    parser.add_argument('--workers', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--learning_rate', type=float, default=5e-4)
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=9)
+    parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='raynet')
+    parser.add_argument('--arch', default='nasray_ray2_aspp_4cell_Dense_best')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='3,4,5')
+    parser.add_argument('--gpus', default='0,1,2,3')
     return parser.parse_args()
 
 
@@ -68,27 +67,47 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = RayNet()
+    model = NASRayNetEvalDense(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
     logging.info("params size = %f m", count_parameters(model))
 
-    optimizer = torch.optim.SGD(model.parameters(
-    ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
+    encoder_parameters = []
+    decoder_parameters = []
+    for k, parameter in model.named_parameters():
+        if 'encode' in k:
+            encoder_parameters.append(parameter)
+        else:
+            decoder_parameters.append(parameter)
+    optimizer_encoder = torch.optim.SGD(
+        encoder_parameters, 0.005, momentum=ARGS.momentum, weight_decay=1e-4)
+    optimizer_decoder = torch.optim.SGD(
+        decoder_parameters, 0.005, weight_decay=1e-4, momentum=ARGS.momentum)
+    multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
 
-    # criterion = torch.nn.BCELoss().cuda()
+    lr_scheduler_encoder = torch.optim.lr_scheduler.StepLR(
+        optimizer_encoder, step_size=3, gamma=0.1)
+    lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
+        optimizer_decoder, step_size=3, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(ARGS, train_aug=False)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=4)
-    best_dice = 0
 
+    multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
+    criterion = WeightDiceLoss().cuda()
+    train_loader, val_loader = get_follicle(16, 8, train_aug=False)
+    best_dice = 0
     for epoch in range(ARGS.epochs):
-        current_lr = scheduler.get_lr()[0]
-        logging.info("epoch: %d lr %e", epoch, current_lr)
+        current_lr_encoder = optimizer_encoder.param_groups[0]['lr']
+        current_lr_decoder = optimizer_decoder.param_groups[0]['lr']
+
+        logging.info("epoch: %d lr_for encoder %e lr_for decoder %e",
+                     epoch, current_lr_encoder, current_lr_decoder)
         epoch_start = time.time()
         train_loss = train(
-            train_loader, model, criterion, optimizer)
+            train_loader, model, criterion, multop)
+
+        lr_scheduler_decoder.step()
+        lr_scheduler_encoder.step()
 
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
@@ -107,7 +126,6 @@ def main():
 
         epoch_duration = time.time()-epoch_start
         logging.info("epoch time: %ds.", epoch_duration)
-        scheduler.step()
 
         is_best = False
         if valid_dice_ovary > best_dice:
@@ -119,7 +137,7 @@ def main():
             finally:
                 pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
-                         'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
+                         'best_dice': best_dice, 'optimizer': optimizer_encoder.state_dict()}, is_best, ARGS.save)
     logging.info("Best finaly ovary dice: %e", best_dice)
 
 
@@ -131,17 +149,18 @@ def train(train_loader, model, criterion, optimizer):
 
     model.train()
     optimizer.zero_grad()
+    accumulate = 4
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-
         logits = model(inputs)
         loss = criterion(logits, target)
         optimizer.zero_grad()
         loss.backward()
         # nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)
-        optimizer.step()
+        if step % accumulate:
+            optimizer.step()
         batch_size = inputs.size(0)
         batch_time.update(time.time()-b_start)
         objs.update(loss, batch_size)

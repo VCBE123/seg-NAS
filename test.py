@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEval, ray2, RayNet_v0, ray3
+from nas import NASRayNetEvalDense, ray2, RayNet_v0, ray3
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle, get_hd
 import multiprocessing
@@ -26,7 +26,7 @@ def get_parser():
     parser.add_argument('--arch', default='nas_ray')
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0')
+    parser.add_argument('--gpus', default='3')
     return parser.parse_args()
 
 
@@ -43,7 +43,7 @@ def main():
     torch.cuda.manual_seed(ARGS.seed)
 
     # model = NASRayNetEval(genotype=ray2)
-    model = NASRayNetEval(genotype=ray3)
+    model = NASRayNetEvalDense(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 

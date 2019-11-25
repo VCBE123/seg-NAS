@@ -32,9 +32,8 @@ class MixedOp(nn.Module):
 class CellSearch(nn.Module):
     "Cell structure for searching"
 
-    def __init__(self, steps, multiplier, c_pp, c_p, C, reduction, reduction_prev, switches):
+    def __init__(self, steps, multiplier, c_pp, c_p, C, reduction_prev, switches):
         super(CellSearch, self).__init__()
-        self.reduction = reduction
         if reduction_prev:
             self.preprocess0 = FactorizedReduce(c_pp, C, affine=False)
         else:
@@ -48,7 +47,7 @@ class CellSearch(nn.Module):
         switch_count = 0
         for i in range(self._steps):
             for j in range(2+i):
-                stride = 2 if reduction and j < 2 else 1
+                stride =1
                 operation = MixedOp(C, stride, switch=switches[switch_count])
                 self.cell_ops.append(operation)
                 switch_count += 1
@@ -69,12 +68,10 @@ class CellSearch(nn.Module):
 class CellDecode(nn.Module):
     "Cell structure for searching"
 
-    def __init__(self, steps, multiplier, c_pp, c_p, C, switches, expansion=False, expansion_prev=False):
+    def __init__(self, steps, multiplier, c_pp, c_p, C, switches, expansion_prev=False):
         super(CellDecode, self).__init__()
-        self.expansion = expansion
         self.expansion_prev = expansion_prev
         self.preprocess0 = ReLUConvBN(c_pp, C, 1, 1, 0, affine=False)
-
         self.preprocess1 = ReLUConvBN(c_p, C, 1, 1, 0, affine=False)
         self._steps = steps
         self._multiplier = multiplier
@@ -91,14 +88,10 @@ class CellDecode(nn.Module):
     def forward(self, s0, s1, weights):
         s0 = self.preprocess0(s0)
         if self.expansion_prev:
-            s0 = F.interpolate(s0, scale_factor=2.,
-                               mode='bilinear', align_corners=True)
+            s0 = F.interpolate(s0, scale_factor=2., mode='bilinear', align_corners=True)
         s1 = self.preprocess1(s1)
-        if self.expansion:
-            s0 = F.interpolate(s0, scale_factor=2.,
-                               mode='bilinear', align_corners=True)
-            s1 = F.interpolate(s1, scale_factor=2.,
-                               mode='bilinear', align_corners=True)
+        s0 = F.interpolate(s0, scale_factor=2., mode='bilinear', align_corners=True)
+        s1 = F.interpolate(s1, scale_factor=2., mode='bilinear', align_corners=True)
         states = [s0, s1]
         offset = 0
         for i in range(self._steps):

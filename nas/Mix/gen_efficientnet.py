@@ -856,7 +856,7 @@ class GenEfficientNet(nn.Module):
         x = self.bn1(x)
         x = self.act_fn(x, inplace=True)
         # modefied by lirui vcbe123@gmail.com
-        catch_layer=[1,2,3]
+        catch_layer=[1,2,3,4,5]
         out=[]
         for i,l in  enumerate(self.blocks):
             x=l(x)
@@ -865,7 +865,6 @@ class GenEfficientNet(nn.Module):
             if i in catch_layer:
                 out.append(x)
 
-
         # x = self.blocks(x)
         if self.efficient_head:
             # efficient head, currently only mobilenet-v3 performs pool before last 1x1 conv
@@ -873,7 +872,7 @@ class GenEfficientNet(nn.Module):
             x = self.conv_head(x)
             # no BN
             x = self.act_fn(x, inplace=True)
-            out.append(x)
+            # out.append(x)
             if pool:
                 # expect flattened output if pool is true, otherwise keep dim
                 x = x.view(x.size(0), -1)
@@ -882,7 +881,7 @@ class GenEfficientNet(nn.Module):
                 x = self.conv_head(x)
                 x = self.bn2(x)
             x = self.act_fn(x, inplace=True)
-            out.append(x)
+            # out.append(x)
             if pool:
                 x = self.global_pool(x)
                 x = x.view(x.size(0), -1)
