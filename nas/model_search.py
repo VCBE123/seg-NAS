@@ -4,8 +4,8 @@ import torch.nn.functional as F
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from genotype import PRIMITIVES
-from operation import OPS, ReLUConvBN, FactorizedReduce
+from .genotype import PRIMITIVES
+from .operation import OPS, ReLUConvBN, FactorizedReduce
 
 
 class MixedOp(nn.Module):

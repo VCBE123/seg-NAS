@@ -13,14 +13,14 @@ import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
 from tensorboardX import SummaryWriter
 import copy
-from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet, NASRayNet_v1
+from nas import WeightDiceLoss, PRIMITIVES, Genotype, NASRayNet
 from dataloader import FollicleDataset, ImgAugTrans
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_dice_follicle, get_dice_ovary
 
 parser = argparse.ArgumentParser("p-search nas-Ray")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
-parser.add_argument('--batch_size', type=int, default=10, help='batch size')
+parser.add_argument('--batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--learning_rate', type=float,
                     default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
@@ -121,7 +121,7 @@ def main():
     switches_reduce = copy.deepcopy(switches)
     # To be moved to args
     num_to_keep = [5, 3, 1]
-    num_to_drop = [3, 2, 2]
+    num_to_drop = [4, 2, 2]
     if len(args.add_width) == 3:
         add_width = args.add_width
     else:
@@ -139,7 +139,7 @@ def main():
 
         # model = NASUnet(args.init_channels, args.classes, args.layers, criterion,
                         # 4, switches_normal=switches_normal, switches_reduce=switches_reduce)
-        model = NASRayNetg (switches_normal=switches_normal,
+        model = NASRayNet(switches_normal=switches_normal,
                           switches_expansion=switches_reduce)
 
         model = nn.DataParallel(model)

@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from genotype import PRIMITIVES
-from operation import OPS, ReLUConvBN, FactorizedReduce
-from Mix import mixnet_xl
-from model_search import CellSearch, CellDecode
+from .genotype import PRIMITIVES
+from .operation import OPS, ReLUConvBN, FactorizedReduce
+from nas.Mix import mixnet_xl
+from .model_search import CellSearch, CellDecode
 
 
 def initialize_weights(*nnmodels):
