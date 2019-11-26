@@ -144,7 +144,7 @@ if __name__ == '__main__':
                     "accumulate": tune.choice([  6]),
                     "batch_size": tune.choice([16]),
                     "times": tune.choice([ 2])}
-    analysis = tune.run( train_follicle, num_samples=100,
+    analysis = tune.run( train_follicle_dense, num_samples=100,
         stop={"best_dice_follicle": 90.0},
         resources_per_trial={"cpu": 8, "gpu": 3}, config=search_space)
     print("Best config:", analysis.get_best_config(metric="best_dice_follicle"))
