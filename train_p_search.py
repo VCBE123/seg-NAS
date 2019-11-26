@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', type=float,
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,4', help='GPU device id')
+                    default='3,1,2,4', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -381,7 +381,7 @@ def infer(valid_queue, model, criterion):
         objs.update(loss.data.item(), n)
         dice_follicle_meter.update(dice_follicle, n)
         dice_ovary_meter.update(dice_ovary, n)
-
+        start_time=time.time()
         if step % args.report_freq == 0:
             end_time = time.time()
             if step == 0:
