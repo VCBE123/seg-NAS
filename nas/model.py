@@ -8,22 +8,18 @@ from nas.Mix import mixnet_xl
 from .RayNet import ASSP, SepConv
 class Cell(nn.Module):
 
-    def __init__(self, genotype, C_prev_prev, C_prev, C, reduction, reduction_prev):
+    def __init__(self, genotype, C_prev_prev, C_prev, C, reduction_prev):
         super(Cell, self).__init__()
         if reduction_prev:
             self.preprocess0 = FactorizedReduce(C_prev_prev, C)
         else:
             self.preprocess0 = ReLUConvBN(C_prev_prev, C, 1, 1, 0)
         self.preprocess1 = ReLUConvBN(C_prev, C, 1, 1, 0)
-        if reduction:
-            op_names, indices = zip(*genotype.reduce)
-            concat = genotype.reduce_concat
-        else:
-            op_names, indices = zip(*genotype.normal)
-            concat = genotype.normal_concat
-        self._compile(C, op_names, indices, concat, reduction)
+        op_names, indices = zip(*genotype.normal)
+        concat = genotype.normal_concat
+        self._compile(C, op_names, indices, concat)
 
-    def _compile(self, C, op_names, indices, concat, reduction):
+    def _compile(self, C, op_names, indices, concat):
         assert len(op_names) == len(indices)  # 8
         self._steps = len(op_names) // 2  # 4
         self._concat = concat
@@ -31,7 +27,7 @@ class Cell(nn.Module):
 
         self._ops = nn.ModuleList()
         for name, index in zip(op_names, indices):
-            stride = 2 if reduction and index < 2 else 1
+            stride = 1
             op = OPS[name](C, stride, True)
             self._ops += [op]
         self._indices = indices
@@ -55,19 +51,14 @@ class Cell(nn.Module):
 class CellDecode(nn.Module):
     "Cell structure for searching"
 
-    def __init__(self, genotype, c_pp, c_p, C,  expansion=False, expansion_prev=False):
+    def __init__(self, genotype, c_pp, c_p, C,  expansion=True, expansion_prev=False):
         super(CellDecode, self).__init__()
         self.expansion = expansion
         self.expansion_prev = expansion_prev
         self.preprocess0 = ReLUConvBN(c_pp, C, 1, 1, 0, affine=False)
-
         self.preprocess1 = ReLUConvBN(c_p, C, 1, 1, 0, affine=False)
-        if expansion:
-            op_names, indices = zip(*genotype.reduce)
-            concat = genotype.reduce_concat
-        else:
-            op_names, indices = zip(*genotype.normal)
-            concat = genotype.normal_concat
+        op_names, indices = zip(*genotype.reduce)
+        concat = genotype.reduce_concat
         self._compile(C, op_names, indices, concat, expansion)
 
     def _compile(self, C, op_names, indices, concat, expansion):
@@ -358,124 +349,39 @@ class NASRayNetEvalDense_v1(nn.Module):
 
 
 
-class NASRayNetEvalDense_v2(nn.Module):
+class NASRayNetEval_v0(nn.Module):
     "adopt from raynet_v0"
 
     def __init__(self, pretrained=True, num_classes=3, genotype='ray1',layer=12):
-        super(NASRayNetEvalDense_v2, self).__init__()
+        super(NASRayNetEval_v0, self).__init__()
         self.encode = mixnet_xl(pretrained=pretrained, num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        self.aspp = ASSP(in_channels=320, output_stride=16)
-        self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
+        self.aspp = ASSP(in_channels=192, output_stride=16)
+        self.decode_cell1 = CellDecode(genotype, 192, 256, 64, expansion_prev=False)
+        self.decode_cell2 = CellDecode(genotype, 128, 256, 64, expansion_prev=True)
 
-        self.low_cell1 = Cell(genotype, 48, 64, 16,reduction=False, reduction_prev=True)
-        self.low_cell2 = Cell(genotype, 64,  112, 16,reduction=False, reduction_prev=False)
-        self.low_cell3 = Cell(genotype, 112, 128, 16,reduction=False, reduction_prev=False)
-        self.low_cell4 = Cell(genotype, 128, 192, 16,reduction=False, reduction_prev=False)
-
-        self.outcell1 = CellDecode( genotype,256, 64, 16,expansion=True, expansion_prev=True)
-        self.cell1 = Cell(genotype, 48, 112, 16,reduction=False, reduction_prev=False)
-        self.cell2 = Cell(genotype, 112, 176, 16,reduction=False, reduction_prev=False)
-        self.cell3 = Cell(genotype, 176, 240, 16,reduction=False, reduction_prev=False)
-        self.cell4 = Cell(genotype, 240, 304, 16,reduction=False, reduction_prev=False)
-        self.cell5 = Cell(genotype, 304, 368, 16,reduction=False, reduction_prev=False)
-
-        self.out = SepConv(432, num_classes, 1, 1, 0)
-        self.up4 = nn.Upsample( scale_factor=4, mode='bilinear', align_corners=True)
-
-    def forward(self, inputs):
-        _, middle_feature = self.encode.forward_features(inputs)
-        aspp = self.aspp(middle_feature[-1])
-
-        decode1 = self.decode_cell(aspp, middle_feature[-2])
-
-        low_feat1 = self.low_cell1( middle_feature[0], middle_feature[1])
-
-        pool_feature=self.maxpool(middle_feature[0])
-
-        low_feat1=torch.cat([pool_feature,low_feat1],1)
-
-        low_feat2=self.low_cell2(middle_feature[1],low_feat1)
-
-        low_feat2=torch.cat([middle_feature[1],low_feat2],1)
-
-        low_feat3=self.low_cell3(low_feat1,low_feat2)
-
-        up_feature=F.interpolate(middle_feature[2],scale_factor=2,mode='bilinear',align_corners=True)
-        low_feat3=torch.cat([up_feature,low_feat3],1)
-        low_feat4=self.low_cell4(low_feat2,low_feat3)
-        out1 = self.outcell1(decode1, low_feat4)
-        out1=torch.cat([middle_feature[0],out1],1)
-        out2 = self.cell1(middle_feature[0],out1)
-        out2=torch.cat([out1,out2],1)
-        out3= self.cell2(out1,out2)
-        out3=torch.cat([out2,out3],1)
-        out4= self.cell3(out2,out3)
-        out4=torch.cat([out3,out4],1)
-
-        out5=self.cell4(out3,out4)
-
-        out5=torch.cat([out4,out5],1)
-        out6=self.cell5(out4,out5)
-        out6=torch.cat([out5,out6],1)
-        out = self.out(out6)
-        out = self.up4(out)
-        out = torch.softmax(out, 1)
-        return out
+        self.low_cell = Cell(genotype, 48, 64, 16, reduction_prev=True)
 
 
-class NASRayNetEval_v3(nn.Module):
-    "adopt from raynet_v0"
-
-    def __init__(self, pretrained=True, num_classes=3, genotype='ray1',layer=12):
-        super(NASRayNetEval_v3, self).__init__()
-        self.encode = mixnet_xl(pretrained=pretrained, num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        self.aspp = ASSP(in_channels=320, output_stride=16)
-        self.decode_cell = CellDecode(genotype, 256, 192, 64, expansion_prev=True)
-
-        self.maxpool=nn.MaxPool2d(kernel_size=2,stride=2)
-        self.low_cell1 = Cell(genotype, 48, 64, 16,reduction=False, reduction_prev=True)
-        self.low_cell2 = Cell(genotype, 64,  112, 16,reduction=False, reduction_prev=False)
-        self.low_cell3 = Cell(genotype, 112, 128, 16,reduction=False, reduction_prev=False)
-        self.low_cell4 = Cell(genotype, 128, 192, 16,reduction=False, reduction_prev=False)
-
-        self.outcell1 = CellDecode( genotype,256, 64, 32,expansion=True, expansion_prev=True)
-        self.cell1 = Cell(genotype, 48, 128, 32,reduction=False, reduction_prev=False)
-        self.cell2 = Cell(genotype, 128, 128, 32,reduction=False, reduction_prev=False)
-        self.cell3 = Cell(genotype, 128, 128, 32,reduction=False, reduction_prev=False)
-
+        self.outcell1 = CellDecode(genotype,64, 256, 32,expansion_prev=True)
         self.out = SepConv(128, num_classes, 1, 1, 0)
-        self.up4 = nn.Upsample( scale_factor=4, mode='bilinear', align_corners=True)
+        self.up2 = nn.Upsample( scale_factor=2, mode='bilinear', align_corners=True)
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        aspp = self.aspp(middle_feature[-1])
+        aspp = self.aspp(middle_feature[-2])
 
-        decode1 = self.decode_cell(aspp, middle_feature[-3])
+        decode1 = self.decode_cell1( middle_feature[-2],aspp)
+        decode2 = self.decode_cell2( middle_feature[-3],decode1)
 
-        low_feat1 = self.low_cell1( middle_feature[0], middle_feature[1])
 
-        pool_feature=self.maxpool(middle_feature[0])
+        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1])
 
-        low_feat1=torch.cat([pool_feature,low_feat1],1)
-
-        low_feat2=self.low_cell2(middle_feature[1],low_feat1)
-
-        low_feat2=torch.cat([middle_feature[1],low_feat2],1)
-
-        low_feat3=self.low_cell3(low_feat1,low_feat2)
-
-        up_feature=F.interpolate(middle_feature[2],scale_factor=2,mode='bilinear',align_corners=True)
-        low_feat3=torch.cat([up_feature,low_feat3],1)
-        low_feat4=self.low_cell4(low_feat2,low_feat3)
-
-        out1 = self.outcell1(decode1, low_feat4)
-        out2 = self.cell1(middle_feature[0],out1)
-        out3= self.cell2(out1,out2)
-        out4= self.cell3(out2,out3)
-        out = self.out(out4)
-        out = self.up4(out)
+        out1 = self.outcell1(low_feat1,decode2)
+        out = self.out(out1)
+        out = self.up2(out)
         out = torch.softmax(out, 1)
         return out
+
 
 
 
