@@ -22,16 +22,16 @@ parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
 parser.add_argument('--batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--learning_rate', type=float,
-                    default=0.025, help='init learning rate')
+                    default=0.001, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
                     default=0.000025, help='min learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 parser.add_argument('--weight_decay', type=float,
-                    default=3e-4, help='weight decay')
+                    default=1e-4, help='weight decay')
 parser.add_argument('--report_freq', type=float,
                     default=50, help='report frequency')
 parser.add_argument('--gpus', type=str,
-                    default='0,1,2,4', help='GPU device id')
+                    default='3,1,2,4', help='GPU device id')
 parser.add_argument('--epochs', type=int, default=25,
                     help='num of training epochs')
 parser.add_argument('--init_channels', type=int,
@@ -40,7 +40,7 @@ parser.add_argument('--layers', type=int, default=12,
                     help='total number of layers')
 parser.add_argument('--drop_path_prob', type=float,
                     default=0.3, help='drop path probability')
-parser.add_argument('--save', type=str, default='logs', help='experiment path')
+parser.add_argument('--save', type=str, default='Search_dense', help='experiment path')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float,
                     default=5, help='gradient clipping')
@@ -381,7 +381,7 @@ def infer(valid_queue, model, criterion):
         objs.update(loss.data.item(), n)
         dice_follicle_meter.update(dice_follicle, n)
         dice_ovary_meter.update(dice_ovary, n)
-
+        start_time=time.time()
         if step % args.report_freq == 0:
             end_time = time.time()
             if step == 0:
