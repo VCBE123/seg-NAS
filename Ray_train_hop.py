@@ -33,7 +33,7 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=25)
+    parser.add_argument('--epochs', type=int, default=125)
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='nasray_ray2_aspp_4cell')
     parser.add_argument('--lr_scheduler', default='step')
