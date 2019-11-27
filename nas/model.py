@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.nn import init
 from .operation import FactorizedReduce, ReLUConvBN, OPS
 from .genotype import  s3
-from nas.Mix import mixnet_xl
+from .Mix import mixnet_xl
 from .RayNet import ASSP, SepConv
 class Cell(nn.Module):
 
@@ -383,10 +383,51 @@ class NASRayNetEval_v0(nn.Module):
         return out
 
 
+class NASRayNetEval_v0_dense(nn.Module):
+    "adopt from raynet_v0"
+
+    def __init__(self, pretrained=True, num_classes=3, genotype='ray1',layer=12):
+        super(NASRayNetEval_v0_dense, self).__init__()
+        self.encode = mixnet_xl(pretrained=pretrained, num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
+        self.aspp = ASSP(in_channels=192, output_stride=16)
+        self.decode_cell1 = CellDecode(genotype, 192, 256, 64, expansion_prev=False)
+        self.decode_cell2 = CellDecode(genotype, 128, 256, 64, expansion_prev=True)
+        self.maxpool=nn.MaxPool2d(kernel_size=2,stride=2)
+        self.low_cell1 = Cell(genotype, 48, 64, 16, reduction_prev=True)
+        self.low_cell2 = Cell(genotype, 64, 112, 16, reduction_prev=False)
+        self.low_cell3 = Cell(genotype, 112, 128, 16, reduction_prev=False)
+        self.low_cell4 = Cell(genotype, 128, 192, 16, reduction_prev=False)
+
+
+        self.outcell1 = CellDecode(genotype,112, 256, 32,expansion_prev=True)
+        self.out = SepConv(128, num_classes, 1, 1, 0)
+        self.up2 = nn.Upsample( scale_factor=2, mode='bilinear', align_corners=True)
+
+    def forward(self, inputs):
+        _, middle_feature = self.encode.forward_features(inputs)
+        aspp = self.aspp(middle_feature[-2])
+        decode1 = self.decode_cell1( middle_feature[-2],aspp)
+        decode2 = self.decode_cell2( middle_feature[-3],decode1)
+        pool_feature=self.maxpool(middle_feature[0])        #96-48                
+        low_feat1 = self.low_cell1( middle_feature[0], middle_feature[1])  #48
+        low_feat1=torch.cat([pool_feature,low_feat1],1)     
+        low_feat2=self.low_cell2(middle_feature[1],low_feat1)
+        low_feat2=torch.cat([middle_feature[1],low_feat2],1)
+        low_feat3=self.low_cell3(low_feat1,low_feat2)
+        up_feature=F.interpolate(middle_feature[2],scale_factor=2,mode='bilinear',align_corners=True)
+        low_feat3=torch.cat([up_feature,low_feat3],1)
+        low_feat4=self.low_cell4(low_feat2,low_feat3)
+
+        out1 = self.outcell1(low_feat1,decode2)
+        out = self.out(out1)
+        out = self.up2(out)
+        out = torch.softmax(out, 1)
+        return out
+
 
 
 if __name__ == "__main__":
-    a = NASRayNetEval_v3(True,3,s3,12)
+    a = NASRayNetEval_v0_dense(True,3,s3,12)
     inputs=torch.randn(2,3,384,384)
     out=a(inputs)
     print(out.size())

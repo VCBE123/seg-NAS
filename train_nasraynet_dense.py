@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import numpy as np
-from nas import NASRayNetEval_v0, NASRayNetEval_v0_dense, WeightDiceLoss, ray2, ray3, NASRayNetEvalDense, MultipleOptimizer
+from nas import NASRayNetEval_v0_dense, WeightDiceLoss, ray2, ray3, NASRayNetEvalDense, MultipleOptimizer
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -27,15 +27,15 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=70)
-    parser.add_argument('--save', type=str, default='logs')
+    parser.add_argument('--epochs', type=int, default=7)
+    parser.add_argument('--save', type=str, default='exp1')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='nasray_ray2_aspp_v0')
+    parser.add_argument('--arch', default='nasray_ray3_aspp_low_dense')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,1,2')
+    parser.add_argument('--gpus', default='1,2,3')
     return parser.parse_args()
 
 
@@ -67,7 +67,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = NASRayNetEval_v0(genotype=ray2)
+    model = NASRayNetEval_v0_dense(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -80,21 +80,19 @@ def main():
             encoder_parameters.append(parameter)
         else:
             decoder_parameters.append(parameter)
+
     optimizer_encoder = torch.optim.SGD(
-        encoder_parameters, 0.001, momentum=ARGS.momentum, weight_decay=1e-4)
+        encoder_parameters, ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=1e-4)
     optimizer_decoder = torch.optim.SGD(
-        decoder_parameters, 0.001, weight_decay=1e-4, momentum=ARGS.momentum)
+        decoder_parameters,ARGS.learning_rate, weight_decay=1e-4, momentum=ARGS.momentum)
     multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
 
     lr_scheduler_encoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_encoder, step_size=20, gamma=0.1)
+        optimizer_encoder, step_size=3, gamma=0.1)
     lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_decoder, step_size=20, gamma=0.1)
+        optimizer_decoder, step_size=3, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-
-    multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
-    criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(16, 8, train_aug=True)
+    train_loader, val_loader = get_follicle(16, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
         current_lr_encoder = optimizer_encoder.param_groups[0]['lr']
@@ -105,10 +103,8 @@ def main():
         epoch_start = time.time()
         train_loss = train(
             train_loader, model, criterion, multop)
-
         lr_scheduler_decoder.step()
         lr_scheduler_encoder.step()
-
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
@@ -149,7 +145,7 @@ def train(train_loader, model, criterion, optimizer):
 
     model.train()
     optimizer.zero_grad()
-    accumulate = 6
+    accumulate = 4
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
