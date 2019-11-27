@@ -33,7 +33,7 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=25)
+    parser.add_argument('--epochs', type=int, default=9)
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='nasray_ray2_aspp_4cell')
     parser.add_argument('--lr_scheduler', default='step')
@@ -67,16 +67,20 @@ def train_follicle_dense(config):
         else:
             decoder_parameters.append(parameter)
 
-    optimizer_encoder = torch.optim.Adam( encoder_parameters, config["learning_rate"], weight_decay=config["weight_decay"]) 
-    optimizer_decoder = torch.optim.Adam( decoder_parameters, config["learning_rate"]*config["times"], weight_decay=config["weight_decay"])
+    optimizer_encoder = torch.optim.SGD( encoder_parameters, config["learning_rate"], weight_decay=config["weight_decay"]) 
+    optimizer_decoder = torch.optim.SGD( decoder_parameters, config["learning_rate"]*config["times"], weight_decay=config["weight_decay"])
     multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
+    if config['COS']:
+        lrsetp=torch.optim.lr_scheduler.CosineAnnealingLR(model.parameters,ARGS.epochs)
+    else:
+        lrstep=torch.optim.lr_scheduler.StepLR(model.parameters,3,gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(
-        config["batch_size"], 8, train_aug=True)
+    train_loader, val_loader = get_follicle( 16, 8, train_aug=True)
     best_dice_follicle = 0
     for epoch in range(ARGS.epochs):
         train_loss = train(train_loader, model, criterion,
                            multop, accumulate=config["accumulate"])
+        lrsetp.step()
         valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
             val_loader, model, criterion)
         is_best = False
@@ -134,17 +138,15 @@ def infer(valid_loader, model, criterion):
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3,4,5,6'
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1,2,3,7,5,6'
     ray.init(num_gpus=6, ignore_reinit_error=True)
-    # sched = ASHAScheduler(metric="best_dice_follicle", mode="max")
+    sched = ASHAScheduler(metric="best_dice_follicle", mode="max")
     search_space = {
         "Dense":tune.choice([True,False]),
-        "learning_rate": tune.choice([ 1e-4 ]),
+        "learning_rate": tune.choice([ 1e-3,5e-4 ]),
                     "weight_decay": tune.choice([ 1e-5]),
-                    "accumulate": tune.choice([  6]),
-                    "batch_size": tune.choice([16]),
-                    "times": tune.choice([ 2])}
-    analysis = tune.run( train_follicle, num_samples=100,
+                    "accumulate": tune.choice([6])}
+    analysis = tune.run( train_follicle_dense, num_samples=100,scheduler=sched,
         stop={"best_dice_follicle": 90.0},
         resources_per_trial={"cpu": 8, "gpu": 3}, config=search_space)
     print("Best config:", analysis.get_best_config(metric="best_dice_follicle"))
