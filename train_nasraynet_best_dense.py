@@ -27,7 +27,7 @@ def get_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
-    parser.add_argument('--epochs', type=int, default=150)
+    parser.add_argument('--epochs', type=int, default=70)
     parser.add_argument('--save', type=str, default='logs')
     parser.add_argument('--seed', default=0)
     parser.add_argument('--arch', default='nasray_ray2_aspp_v0_dense')
@@ -81,15 +81,15 @@ def main():
         else:
             decoder_parameters.append(parameter)
     optimizer_encoder = torch.optim.SGD(
-        encoder_parameters, 0.003, momentum=ARGS.momentum, weight_decay=1e-4)
+        encoder_parameters, 0.001, momentum=ARGS.momentum, weight_decay=1e-4)
     optimizer_decoder = torch.optim.SGD(
-        decoder_parameters, 0.003, weight_decay=1e-4, momentum=ARGS.momentum)
+        decoder_parameters, 0.001, weight_decay=1e-4, momentum=ARGS.momentum)
     multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
 
     lr_scheduler_encoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_encoder, step_size=50, gamma=0.1)
+        optimizer_encoder, step_size=20, gamma=0.1)
     lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_decoder, step_size=50, gamma=0.1)
+        optimizer_decoder, step_size=20, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
 
     multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
