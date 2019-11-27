@@ -59,17 +59,17 @@ def train_follicle_com(config):
         model = NASRayNetEval_v0(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
+    optimizer = torch.optim.SGD(model.parameters(
+    ), config["learning_rate"], momentum=ARGS.momentum, weight_decay=config["weight_decay"])
     if config['COS']:
         lrstep = torch.optim.lr_scheduler.CosineAnnealingLR(
-            model.parameters, ARGS.epochs)
+            optimizer, ARGS.epochs)
     else:
         lrstep = torch.optim.lr_scheduler.StepLR(
-            model.parameters, 3, gamma=0.1)
+            optimizer, 3, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
     train_loader, val_loader = get_follicle(16, 8, train_aug=True)
     best_dice_follicle = 0
-    optimizer = torch.optim.SGD(model.parameters(
-    ), config["learning_rate"], momentum=ARGS.momentum, weight_decay=config["weight_decay"])
     for epoch in range(ARGS.epochs):
         train_loss = train(train_loader, model, criterion,
                            optimizer, accumulate=config["accumulate"])
