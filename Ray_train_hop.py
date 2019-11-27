@@ -51,7 +51,7 @@ torch.manual_seed(ARGS.seed)
 torch.cuda.manual_seed(ARGS.seed)
 
 
-def train_follicle_dense(config):
+def train_follicle_com(config):
     "train follicle"
     if config["Dense"]:
         model = NASRayNetEval_v0_dense(genotype=ray2)
@@ -59,28 +59,21 @@ def train_follicle_dense(config):
         model = NASRayNetEval_v0(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
-    encoder_parameters = []
-    decoder_parameters = []
-    for k, parameter in model.named_parameters():
-        if 'encode' in k:
-            encoder_parameters.append(parameter)
-        else:
-            decoder_parameters.append(parameter)
-
-    optimizer_encoder = torch.optim.SGD( encoder_parameters, config["learning_rate"], weight_decay=config["weight_decay"]) 
-    optimizer_decoder = torch.optim.SGD( decoder_parameters, config["learning_rate"]*config["times"], weight_decay=config["weight_decay"])
-    multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
     if config['COS']:
-        lrsetp=torch.optim.lr_scheduler.CosineAnnealingLR(model.parameters,ARGS.epochs)
+        lrstep = torch.optim.lr_scheduler.CosineAnnealingLR(
+            model.parameters, ARGS.epochs)
     else:
-        lrstep=torch.optim.lr_scheduler.StepLR(model.parameters,3,gamma=0.1)
+        lrstep = torch.optim.lr_scheduler.StepLR(
+            model.parameters, 3, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle( 16, 8, train_aug=True)
+    train_loader, val_loader = get_follicle(16, 8, train_aug=True)
     best_dice_follicle = 0
+    optimizer = torch.optim.SGD(model.parameters(
+    ), config["learning_rate"], momentum=ARGS.momentum, weight_decay=config["weight_decay"])
     for epoch in range(ARGS.epochs):
         train_loss = train(train_loader, model, criterion,
-                           multop, accumulate=config["accumulate"])
-        lrsetp.step()
+                           optimizer, accumulate=config["accumulate"])
+        lrstep.step()
         valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
             val_loader, model, criterion)
         is_best = False
@@ -94,8 +87,9 @@ def train_follicle_dense(config):
                 finally:
                     pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
-                         'best_dice_follicle': best_dice_follicle, 'optimizer': optimizer_decoder.state_dict()}, is_best, "")
-        track.log( train_loss=train_loss, valid_loss=valid_loss, valid_dice_follicle=valid_dice_follicle, valid_dice_ovary=valid_dice_ovary, best_dice_follicle=best_dice_follicle)
+                         'best_dice_follicle': best_dice_follicle, 'optimizer': optimizer.state_dict()}, is_best, "")
+        track.log(train_loss=train_loss, valid_loss=valid_loss, valid_dice_follicle=valid_dice_follicle,
+                  valid_dice_ovary=valid_dice_ovary, best_dice_follicle=best_dice_follicle)
 
 
 def train(train_loader, model, criterion, optimizer, accumulate):
@@ -142,11 +136,13 @@ if __name__ == '__main__':
     ray.init(num_gpus=6, ignore_reinit_error=True)
     sched = ASHAScheduler(metric="best_dice_follicle", mode="max")
     search_space = {
-        "Dense":tune.choice([True,False]),
-        "learning_rate": tune.choice([ 1e-3,5e-4 ]),
-                    "weight_decay": tune.choice([ 1e-5]),
-                    "accumulate": tune.choice([6])}
-    analysis = tune.run( train_follicle_dense, num_samples=100,scheduler=sched,
-        stop={"best_dice_follicle": 90.0},
-        resources_per_trial={"cpu": 8, "gpu": 3}, config=search_space)
+        "Dense": tune.choice([True, False]),
+        "COS": tune.choice([True, False]),
+        "learning_rate": tune.choice([1e-3, 5e-4]),
+        "weight_decay": tune.choice([1e-5]),
+
+        "accumulate": tune.choice([6])}
+    analysis = tune.run(train_follicle_com, num_samples=100, scheduler=sched,
+                        stop={"best_dice_follicle": 90.0},
+                        resources_per_trial={"cpu": 8, "gpu": 3}, config=search_space)
     print("Best config:", analysis.get_best_config(metric="best_dice_follicle"))
