@@ -208,35 +208,36 @@ class NASRayNet(nn.Module):
                                 num_classes=num_classes, head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
         self.aspp = ASSP(in_channels=192, output_stride=16)
         self.decode_cell1 = CellDecode(4,4, 192, 256, 64, switches=switches_expansion)
-        self.decode_cell2 = CellDecode(4,4, 128, 256, 64, switches=switches_expansion,expansion_prev=True)
+        self.decode_cell2 = CellDecode(4,4, 192, 256, 64, switches=switches_expansion,expansion_prev=True)
 
-        self.low_cell = CellSearch(4,4,48, 64, 16,True, switches_normal)
-
+        self.low_cell1 = CellSearch(4,4,48, 64, 16,True, switches_normal)
+        self.low_cell2 = CellSearch(4,4,64, 64, 16,False, switches_normal)
         self.outcell1 = CellDecode(4,4, 64, 256, 32,switches_expansion, expansion_prev=True)
-        # self.outcell2= CellSearch(4,4,192,168,32,False,switches_normal)
+        self.outcell2= CellSearch(4,4,128,128,16,False,switches_normal)
         # self.outcell3= CellSearch(4,4,192,168,32,False,switches_normal)
 
-        self.out = SepConv(128, num_classes, 1, 1, 0)
+        self.out = SepConv(64, num_classes, 1, 1, 0)
         self.up2 = nn.Upsample(
             scale_factor=2, mode='bilinear', align_corners=True)
         self._initialize_alphas()
 
     def forward(self, inputs):
         _, middle_feature = self.encode.forward_features(inputs)
-        aspp = self.aspp(middle_feature[-2])            # 128-24-24
+        aspp = self.aspp(middle_feature[-2])            # 256-24-24
         # aspp = middle_feature[-1]
 
         weights = F.softmax(self.alphas_expansion, dim=-1)
-        decode1 = self.decode_cell1(middle_feature[-2],aspp, weights)
-        decode2 = self.decode_cell2(middle_feature[-3],decode1, weights)
+        decode1 = self.decode_cell1(middle_feature[-2],aspp, weights) #48
+        decode2 = self.decode_cell2(middle_feature[-2],decode1, weights) #96
 
         weights = F.softmax(self.alphas_normal, dim=-1)
-        low_feat1 = self.low_cell( middle_feature[0], middle_feature[1], weights)
+        low_feat1 = self.low_cell1( middle_feature[0], middle_feature[1], weights)#48
 
+        low_feat2 = self.low_cell2(middle_feature[1],low_feat1,weights)
         weights = F.softmax(self.alphas_expansion, dim=-1)
 
-        out = self.outcell1(low_feat1, decode2, weights)
-        # out = self.outcell2(out,middle_feature[0])
+        out = self.outcell1(low_feat2, decode2, weights) #
+        out = self.outcell2(out,out,weights)
         # out = self.outcell3(out,middle_feature[0])
 
         out = self.out(out)

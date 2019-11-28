@@ -26,7 +26,7 @@ class MixedOp(nn.Module):
 
     def forward(self, x, weights):
         # Fixme debug on cpu
-        return sum(w.cuda()*operation(x.cuda()) for w, operation in zip(weights, self.m_op))
+        return sum(w*operation(x) for w, operation in zip(weights, self.m_op))
 
 
 class CellSearch(nn.Module):
