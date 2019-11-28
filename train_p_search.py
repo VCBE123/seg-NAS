@@ -20,7 +20,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, get_di
 parser = argparse.ArgumentParser("p-search nas-Ray")
 parser.add_argument('--workers', type=int, default=32,
                     help='number of workers to load dataset')
-parser.add_argument('--batch_size', type=int, default=6, help='batch size')
+parser.add_argument('--batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--learning_rate', type=float,
                     default=0.001, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float,
@@ -121,7 +121,7 @@ def main():
     switches_reduce = copy.deepcopy(switches)
     # To be moved to args
     num_to_keep = [4, 3, 1]
-    num_to_drop = [4, 2, 1]
+    num_to_drop = [3, 2, 1]
     if len(args.add_width) == 3:
         add_width = args.add_width
     else:

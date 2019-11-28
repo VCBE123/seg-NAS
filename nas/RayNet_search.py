@@ -212,8 +212,8 @@ class NASRayNet(nn.Module):
 
         self.low_cell1 = CellSearch(4,4,48, 64, 16,True, switches_normal)
         self.low_cell2 = CellSearch(4,4,64, 64, 16,False, switches_normal)
-        self.outcell1 = CellDecode(4,4, 64, 256, 32,switches_expansion, expansion_prev=True)
-        self.outcell2= CellSearch(4,4,128,128,16,False,switches_normal)
+        self.outcell1 = CellDecode(4,4, 64, 256, 16,switches_expansion, expansion_prev=True)
+        self.outcell2= CellSearch(4,4,64,64,16,False,switches_normal)
         # self.outcell3= CellSearch(4,4,192,168,32,False,switches_normal)
 
         self.out = SepConv(64, num_classes, 1, 1, 0)
