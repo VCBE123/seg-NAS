@@ -30,3 +30,5 @@ ray3= Genotype(normal=[('se', 0), ('se', 1), ('sep_conv_3x3', 1), ('md_conv_357'
 
 sk1 =Genotype(normal=[('se', 0), ('skip_connect', 1), ('skip_connect', 1), ('skip_connect', 2), ('skip_connect', 1), ('skip_connect', 3), ('skip_connect', 1), ('se', 4)], normal_concat=range(2, 6),
  reduce=[('sep_conv_5x5', 0), ('md_conv_357', 1), ('se', 1), ('sep_conv_5x5', 2), ('sep_conv_5x5', 2), ('sep_conv_5x5', 3), ('md_conv_357', 2), ('se', 3)], reduce_concat=range(2, 6))
+seg_1=Genotype(normal=[('md_conv_35', 0), ('md_conv_35', 1), ('md_conv_357', 0), ('md_conv_357', 2), ('sep_conv_3x3', 0), ('md_conv_357', 2), ('md_conv_35', 0), ('md_conv_357', 3)], normal_concat=range(2, 6), 
+    reduce=[('sep_conv_5x5', 0), ('sep_conv_3x3', 1), ('sep_conv_5x5', 0), ('sep_conv_5x5', 2), ('sep_conv_5x5', 2), ('sep_conv_5x5', 3), ('dil_conv_5x5', 1), ('dil_conv_5x5', 4)], reduce_concat=range(2, 6))
