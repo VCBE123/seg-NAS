@@ -273,6 +273,8 @@ class RayNet_v0(nn.Module):
         return out
 
 
+
+
 if __name__ == '__main__':
     m = RayNet_v1()
     inputs = torch.randn([2, 3, 384, 384])
