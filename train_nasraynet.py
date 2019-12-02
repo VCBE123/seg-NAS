@@ -30,12 +30,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp1')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='low_seg1_BCE')
+    parser.add_argument('--arch', default='low_seg1_BCE_DICE')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='1,2,3')
+    parser.add_argument('--gpus', default='0,5,6')
     return parser.parse_args()
 
 
@@ -92,8 +92,8 @@ def main():
         optimizer_encoder, step_size=10, gamma=0.1)
     lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
         optimizer_decoder, step_size=10, gamma=0.1)
-    # criterion = WeightDiceLoss().cuda()
-    criterion = nn.BCELoss().cuda()
+    criterion2 = WeightDiceLoss().cuda()
+    criterion1 = nn.BCELoss().cuda()
     train_loader, val_loader = get_follicle(ARGS.batch_size, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
@@ -104,14 +104,14 @@ def main():
                      epoch, current_lr_encoder, current_lr_decoder)
         epoch_start = time.time()
         train_loss = train(
-            train_loader, model, criterion, multop)
+            train_loader, model, criterion1,criterion2, multop)
         lr_scheduler_decoder.step()
         lr_scheduler_encoder.step()
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
         valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
-            val_loader, model, criterion)
+            val_loader, model, criterion1)
         logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
                      valid_dice_follicle, valid_dice_ovary)
         logging.info("valid_loss: %f", valid_loss)
@@ -139,7 +139,7 @@ def main():
     logging.info("Best finaly ovary dice: %e", best_dice)
 
 
-def train(train_loader, model, criterion, optimizer):
+def train(train_loader, model, criterion1,criterion2, optimizer):
     "training func"
     objs = AverageMeter()
     # dicemeter = AverageMeter()
@@ -153,7 +153,7 @@ def train(train_loader, model, criterion, optimizer):
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
         logits = model(inputs)
-        loss = criterion(logits, target)
+        loss = criterion1(logits, target)+criterion2(logits,target)
         optimizer.zero_grad()
         loss.backward()
         # nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)
