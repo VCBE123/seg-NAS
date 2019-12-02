@@ -35,7 +35,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,5,6')
+    parser.add_argument('--gpus', default='1,2,3')
     return parser.parse_args()
 
 
@@ -153,7 +153,7 @@ def train(train_loader, model, criterion1,criterion2, optimizer):
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
         logits = model(inputs)
-        loss = criterion1(logits, target)+criterion2(logits,target)
+        loss = criterion1(logits,target)+ criterion2(logits,target)
         optimizer.zero_grad()
         loss.backward()
         # nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)

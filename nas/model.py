@@ -525,7 +525,7 @@ class NASRayNet_seg(nn.Module):
         self.decode_cell2=CellDecode(genotype,192,256,64,expansion_prev=True)
 
         self.low_cell1=Cell(genotype,48,64,16,True)
-        self.low_cell2=Cell(genotype,64,368,16,False)
+        self.low_cell2=Cell(genotype,64,64,16,False)
 
         self.outcell1=CellDecode(genotype, 128,256,16,expansion_prev=True)
         self.outcell2=Cell(genotype,64,64,16,reduction_prev=False)
@@ -542,7 +542,7 @@ class NASRayNet_seg(nn.Module):
         low_feat1=self.low_cell1(middle_feature[0],middle_feature[1])
         down_feature=self.maxpool(middle_feature[0])
         up_feature=self.up2(middle_feature[3])
-        low_feat1=torch.cat([low_feat1,middle_feature[1],down_feature,up_feature],1)
+        # low_feat1=torch.cat([low_feat1,middle_feature[1],down_feature,up_feature],1)
         low_feat2=self.low_cell2(middle_feature[1],low_feat1)
         low_feat2=torch.cat([middle_feature[1],low_feat2],1)
 
