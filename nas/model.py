@@ -525,11 +525,11 @@ class NASRayNet_seg(nn.Module):
         self.decode_cell2=CellDecode(genotype,192,256,64,expansion_prev=True)
 
         self.low_cell1=Cell(genotype,48,64,16,True)
-        self.low_cell2=Cell(genotype,64,64,16,False)
+        self.low_cell2=Cell(genotype,64,368,16,False)
 
-        self.outcell1=CellDecode(genotype, 64,256,16,expansion_prev=True)
+        self.outcell1=CellDecode(genotype, 128,256,16,expansion_prev=True)
         self.outcell2=Cell(genotype,64,64,16,reduction_prev=False)
-        self.outcell3=Cell(genotype,128,64,16,reduction_prevFalse)
+        self.outcell3=Cell(genotype,128,64,16,reduction_prev=False)
         self.out=SepConv(64,num_classes,1,1,0)
         self.up2=nn.Upsample(scale_factor=2,mode='bilinear',align_corners=True)
         self.maxpool=nn.MaxPool2d(2,2)

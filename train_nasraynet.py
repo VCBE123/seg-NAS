@@ -30,7 +30,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp1')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='low_seg1_batch30')
+    parser.add_argument('--arch', default='low_seg1_BCE')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
@@ -92,7 +92,8 @@ def main():
         optimizer_encoder, step_size=10, gamma=0.1)
     lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
         optimizer_decoder, step_size=10, gamma=0.1)
-    criterion = WeightDiceLoss().cuda()
+    # criterion = WeightDiceLoss().cuda()
+    criterion = nn.BCELoss().cuda()
     train_loader, val_loader = get_follicle(ARGS.batch_size, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
@@ -146,7 +147,7 @@ def train(train_loader, model, criterion, optimizer):
 
     model.train()
     optimizer.zero_grad()
-    accumulate = 4
+    accumulate = 1
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
