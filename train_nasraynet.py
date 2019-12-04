@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import numpy as np
-from nas import NASRayNetEval_v0, WeightDiceLoss, ray2, ray3,NASRayNet_seg, MultipleOptimizer, seg_1
+from nas import NASRayNetEval, WeightDiceLoss, ray2,MultipleOptimizer
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -28,14 +28,14 @@ def get_parser():
     parser.add_argument('--weight_decay', type=float, default=1e-4)
     parser.add_argument('--report', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=25)
-    parser.add_argument('--save', type=str, default='exp1')
+    parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='low_seg1_BCE_DICE')
+    parser.add_argument('--arch', default='search_v2')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='1,2,3')
+    parser.add_argument('--gpus', default='4,2,3')
     return parser.parse_args()
 
 
@@ -68,7 +68,7 @@ def main():
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
     # model = NASRayNetEval_v0(genotype=ray2)
-    model = NASRayNet_seg(genotype=seg_1)
+    model = NASRayNetEval(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -92,9 +92,9 @@ def main():
         optimizer_encoder, step_size=10, gamma=0.1)
     lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
         optimizer_decoder, step_size=10, gamma=0.1)
-    criterion2 = WeightDiceLoss().cuda()
-    criterion1 = nn.BCELoss().cuda()
-    train_loader, val_loader = get_follicle(ARGS.batch_size, 8, train_aug=False)
+    criterion = WeightDiceLoss().cuda()
+    train_loader, val_loader = get_follicle(
+        ARGS.batch_size, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
         current_lr_encoder = optimizer_encoder.param_groups[0]['lr']
@@ -104,14 +104,14 @@ def main():
                      epoch, current_lr_encoder, current_lr_decoder)
         epoch_start = time.time()
         train_loss = train(
-            train_loader, model, criterion1,criterion2, multop)
+            train_loader, model, criterion, multop)
         lr_scheduler_decoder.step()
         lr_scheduler_encoder.step()
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
         valid_dice_follicle, valid_dice_ovary, valid_loss = infer(
-            val_loader, model, criterion1)
+            val_loader, model, criterion)
         logging.info("valid_dice_follicle: %f valid_dice_ovary: %f",
                      valid_dice_follicle, valid_dice_ovary)
         logging.info("valid_loss: %f", valid_loss)
@@ -139,7 +139,7 @@ def main():
     logging.info("Best finaly ovary dice: %e", best_dice)
 
 
-def train(train_loader, model, criterion1,criterion2, optimizer):
+def train(train_loader, model, criterion, optimizer):
     "training func"
     objs = AverageMeter()
     # dicemeter = AverageMeter()
@@ -147,17 +147,18 @@ def train(train_loader, model, criterion1,criterion2, optimizer):
 
     model.train()
     optimizer.zero_grad()
-    accumulate = 1
+    accumulate = 3
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-        logits = model(inputs)
-        loss = criterion1(logits,target)+ criterion2(logits,target)
-        optimizer.zero_grad()
+        logits1= model(inputs)
+        loss = criterion(logits1, target)
+        if step % accumulate == 0:
+            optimizer.zero_grad()
         loss.backward()
         # nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)
-        if step % accumulate:
+        if step % accumulate == 0:
             optimizer.step()
         batch_size = inputs.size(0)
         batch_time.update(time.time()-b_start)
@@ -186,7 +187,7 @@ def infer(valid_loader, model, criterion):
         inputs = inputs.cuda()
         targets = targets.cuda()
         with torch.no_grad():
-            logits = model(inputs)
+            logits,_ = model(inputs)
             loss = criterion(logits, targets)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
