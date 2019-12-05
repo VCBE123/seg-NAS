@@ -31,12 +31,12 @@ OPS = {
 class ReLUConvBN(nn.Module):
     "Relu->conv->Bn block"
 
-    def __init__(self, C_in, C_out, kernel_size, stride, padding, affine=True):
+    def __init__(self, C_in, C_out, kernel_size, stride, padding,dilation=1, affine=True):
         super(ReLUConvBN, self).__init__()
         self.ops = nn.Sequential(
             nn.LeakyReLU(negative_slope=0.1),
             nn.Conv2d(C_in, C_out, kernel_size, stride=stride,
-                      padding=padding, bias=False),
+                      padding=padding,dilation=dilation, bias=False),
             nn.BatchNorm2d(C_out, affine=affine)
         )
 
@@ -164,14 +164,14 @@ class Zero(nn.Module):
 class FactorizedReduce(nn.Module):
     "FactorizedReduce"
 
-    def __init__(self, C_in, C_out, affine=True):
+    def __init__(self, C_in, C_out, affine=True,kernel=1,dilation=1):
         super(FactorizedReduce, self).__init__()
         assert C_out % 2 == 0
         self.relu = nn.LeakyReLU(negative_slope=0.1)
-        self.conv_1 = nn.Conv2d(C_in, C_out // 2, 1,
-                                stride=2, padding=0, bias=False)
-        self.conv_2 = nn.Conv2d(C_in, C_out // 2, 1,
-                                stride=2, padding=0, bias=False)
+        self.conv_1 = nn.Conv2d(C_in, C_out // 2, kernel,
+                                stride=2, padding=0,dilation=1, bias=False)
+        self.conv_2 = nn.Conv2d(C_in, C_out // 2, kernel,
+                                stride=2, padding=0,dilation=1, bias=False)
         self.bn2d = nn.BatchNorm2d(C_out, affine=affine)
 
     def forward(self, x):
