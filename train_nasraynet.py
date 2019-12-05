@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2,MultipleOptimizer,NASRayNetEval_aspp
+from nas import NASRayNetEval, WeightDiceLoss, ray2,NASRayNetEval_aspp
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -20,8 +20,8 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_c
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train unet')
-    parser.add_argument('--workers', type=int, default=8)
+    parser = argparse.ArgumentParser(description='train ray')
+    parser.add_argument('--workers', type=int, default=32)
     parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--momentum', type=float, default=0.9)
@@ -30,7 +30,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='search_v2_aspp')
+    parser.add_argument('--arch', default='search_v2')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
@@ -74,31 +74,14 @@ def main():
 
     logging.info("params size = %f m", count_parameters(model))
 
-    encoder_parameters = []
-    decoder_parameters = []
-    for k, parameter in model.named_parameters():
-        if 'encode' in k:
-            encoder_parameters.append(parameter)
-        else:
-            decoder_parameters.append(parameter)
+    optimizer=torch.optim.SGD(model.parameters(),ARGS.learning_rate,momentum=ARGS.momentum,weight_decay=ARGS.weight_decay)
 
-    optimizer_encoder = torch.optim.SGD(
-        encoder_parameters, ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=1e-4)
-    optimizer_decoder = torch.optim.SGD(
-        decoder_parameters, ARGS.learning_rate, weight_decay=1e-4, momentum=ARGS.momentum)
-    multop = MultipleOptimizer(optimizer_decoder, optimizer_encoder)
-
-    lr_scheduler_encoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_encoder, step_size=10, gamma=0.1)
-    lr_scheduler_decoder = torch.optim.lr_scheduler.StepLR(
-        optimizer_decoder, step_size=10, gamma=0.1)
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(
-        ARGS.batch_size, 8, train_aug=False)
+    scheduler=torch.optim.lr_scheduler.StepLR(optimizer,step_size=10)
+    train_loader, val_loader = get_follicle( ARGS.batch_size, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
-        current_lr_encoder = optimizer_encoder.param_groups[0]['lr']
-        current_lr_decoder = optimizer_decoder.param_groups[0]['lr']
+        current_lr= scheduler.get_lr()[0]
 
         logging.info("epoch: %d lr_for encoder %e lr_for decoder %e",
                      epoch, current_lr_encoder, current_lr_decoder)
@@ -147,19 +130,16 @@ def train(train_loader, model, criterion, optimizer):
 
     model.train()
     optimizer.zero_grad()
-    accumulate = 3
     for step, (inputs, target) in enumerate(train_loader):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
         logits= model(inputs)
         loss = criterion(logits, target)
-        if step % accumulate == 0:
-            optimizer.zero_grad()
+        optimizer.zero_grad()
         loss.backward()
         # nn.utils.clip_grad_norm_(model.module.parameters(), ARGS.grad_clip)
-        if step % accumulate == 0:
-            optimizer.step()
+        optimizer.step()
         batch_size = inputs.size(0)
         batch_time.update(time.time()-b_start)
         objs.update(loss, batch_size)
