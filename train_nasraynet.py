@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2,NASRayNetEval_aspp
+from nas import NASRayNetEval, WeightDiceLoss, ray2, NASRayNetEval_aspp
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -30,7 +30,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='search_v2')
+    parser.add_argument('--arch', default='search_v2_base_line')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
@@ -74,22 +74,22 @@ def main():
 
     logging.info("params size = %f m", count_parameters(model))
 
-    optimizer=torch.optim.SGD(model.parameters(),ARGS.learning_rate,momentum=ARGS.momentum,weight_decay=ARGS.weight_decay)
+    optimizer = torch.optim.SGD(model.parameters(
+    ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
 
     criterion = WeightDiceLoss().cuda()
-    scheduler=torch.optim.lr_scheduler.StepLR(optimizer,step_size=10)
-    train_loader, val_loader = get_follicle( ARGS.batch_size, 8, train_aug=False)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
+    train_loader, val_loader = get_follicle(
+        ARGS.batch_size, 8, train_aug=False)
     best_dice = 0
     for epoch in range(ARGS.epochs):
-        current_lr= scheduler.get_lr()[0]
+        current_lr = scheduler.get_lr()[0]
 
-        logging.info("epoch: %d lr_for encoder %e lr_for decoder %e",
-                     epoch, current_lr_encoder, current_lr_decoder)
+        logging.info("epoch: %d lr %e", epoch, current_lr)
         epoch_start = time.time()
         train_loss = train(
-            train_loader, model, criterion, multop)
-        lr_scheduler_decoder.step()
-        lr_scheduler_encoder.step()
+            train_loader, model, criterion, optimizer)
+        scheduler.step()
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
@@ -134,7 +134,7 @@ def train(train_loader, model, criterion, optimizer):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-        logits= model(inputs)
+        logits = model(inputs)
         loss = criterion(logits, target)
         optimizer.zero_grad()
         loss.backward()
@@ -167,7 +167,7 @@ def infer(valid_loader, model, criterion):
         inputs = inputs.cuda()
         targets = targets.cuda()
         with torch.no_grad():
-            logits= model(inputs)
+            logits = model(inputs)
             loss = criterion(logits, targets)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
