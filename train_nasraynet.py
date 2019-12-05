@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2,MultipleOptimizer
+from nas import NASRayNetEval, WeightDiceLoss, ray2,MultipleOptimizer,NASRayNetEval_aspp
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -30,12 +30,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='search_v2')
+    parser.add_argument('--arch', default='search_v2_aspp')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='4,2,3')
+    parser.add_argument('--gpus', default='0,1,5')
     return parser.parse_args()
 
 
@@ -68,7 +68,7 @@ def main():
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
     # model = NASRayNetEval_v0(genotype=ray2)
-    model = NASRayNetEval(genotype=ray2)
+    model = NASRayNetEval_aspp(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -152,8 +152,8 @@ def train(train_loader, model, criterion, optimizer):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-        logits1= model(inputs)
-        loss = criterion(logits1, target)
+        logits= model(inputs)
+        loss = criterion(logits, target)
         if step % accumulate == 0:
             optimizer.zero_grad()
         loss.backward()
@@ -187,7 +187,7 @@ def infer(valid_loader, model, criterion):
         inputs = inputs.cuda()
         targets = targets.cuda()
         with torch.no_grad():
-            logits,_ = model(inputs)
+            logits= model(inputs)
             loss = criterion(logits, targets)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
