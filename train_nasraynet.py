@@ -79,7 +79,7 @@ def main():
 
     # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
-    train_loader, val_loader = get_follicle(ARGS, 8, train_aug=False)
+    train_loader, val_loader = get_follicle(ARGS.batch_size, 8, train_aug=False)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
     best_dice = 0
 
