@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3
+from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3,NASRayNetEval_aspp
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -31,12 +31,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='nasray_ray2_aspp_4cell')
+    parser.add_argument('--arch', default='nasray_ray2_ASPP_Cell')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='2,3,4')
+    parser.add_argument('--gpus', default='0,1,5')
     return parser.parse_args()
 
 
@@ -68,7 +68,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = NASRayNetEval(genotype=ray2)
+    model = NASRayNetEval_aspp(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
