@@ -30,12 +30,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='search_v2_base_line')
+    parser.add_argument('--arch', default='search_v2_aspp')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,1,5')
+    parser.add_argument('--gpus', default='6,1,5')
     return parser.parse_args()
 
 
@@ -118,7 +118,7 @@ def main():
             finally:
                 pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
-                         'best_dice': best_dice, 'optimizer': optimizer_encoder.state_dict()}, is_best, ARGS.save)
+                         'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
     logging.info("Best finaly ovary dice: %e", best_dice)
 
 
