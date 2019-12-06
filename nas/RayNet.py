@@ -29,11 +29,11 @@ def assp_branch(in_channels, out_channles, kernel_size, dilation):
         nn.ReLU(inplace=True))
 
 
-class ASSP(nn.Module):
+class ASPP(nn.Module):
     "ASPP Atrous Spatial Pyramid Pooling"
 
-    def __init__(self, in_channels, output_stride):
-        super(ASSP, self).__init__()
+    def __init__(self, in_channels,output_stride,output_channels=256):
+        super(ASPP, self).__init__()
 
         assert output_stride in [
             8, 16], 'Only output strides of 8 or 16 are suported'
@@ -42,19 +42,19 @@ class ASSP(nn.Module):
         elif output_stride == 8:
             dilations = [1, 12, 24, 32]
 
-        self.aspp1 = assp_branch(in_channels, 256, 1, dilation=dilations[0])
-        self.aspp2 = assp_branch(in_channels, 256, 3, dilation=dilations[1])
-        self.aspp3 = assp_branch(in_channels, 256, 3, dilation=dilations[2])
-        self.aspp4 = assp_branch(in_channels, 256, 3, dilation=dilations[3])
+        self.aspp1 = assp_branch(in_channels, output_channels, 1, dilation=dilations[0])
+        self.aspp2 = assp_branch(in_channels, output_channels, 3, dilation=dilations[1])
+        self.aspp3 = assp_branch(in_channels, output_channels, 3, dilation=dilations[2])
+        self.aspp4 = assp_branch(in_channels, output_channels, 3, dilation=dilations[3])
 
         self.avg_pool = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Conv2d(in_channels, 256, 1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(in_channels, output_channels, 1, bias=False),
+            nn.BatchNorm2d(output_channels),
             nn.ReLU(inplace=True))
 
-        self.conv1 = nn.Conv2d(256*5, 256, 1, bias=False)
-        self.bn1 = nn.BatchNorm2d(256)
+        self.conv1 = nn.Conv2d(output_channels*5, output_channels, 1, bias=False)
+        self.bn1 = nn.BatchNorm2d(output_channels)
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(0.5)
 
