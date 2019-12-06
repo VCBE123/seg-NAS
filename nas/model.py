@@ -69,7 +69,7 @@ class Cell(nn.Module):
 class ASPP_cell(nn.Module):
     def __init__(self, in_channels_1, in_channels_2, genotype, output_stride=16):
         super(ASPP_cell, self).__init__()
-        dilation = [1, 3, 5, 7]
+        dilation = [1, 4,7,10]
         self.aspp1 = Cell(genotype, in_channels_1, in_channels_2,
                           32,reduction=False, reduction_prev=True, dilation=dilation[0])
         self.aspp2 = Cell(genotype, in_channels_1, in_channels_2,
