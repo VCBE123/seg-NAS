@@ -67,28 +67,29 @@ class Cell(nn.Module):
 
 
 class ASPP_cell(nn.Module):
-    def __init__(self, in_channels_1, in_channels_2, genotype, output_stride=16):
+    def __init__(self, in_channels_1, in_channels_2,out_channels, genotype, output_stride=16):
         super(ASPP_cell, self).__init__()
         dilation = [1, 4,7,10]
+        C_curr=out_channels//8
         self.aspp1 = Cell(genotype, in_channels_1, in_channels_2,
-                          32,reduction=False, reduction_prev=True, dilation=dilation[0])
+                          C_curr,reduction=False, reduction_prev=True, dilation=dilation[0])
         self.aspp2 = Cell(genotype, in_channels_1, in_channels_2,
-                          32,reduction=False, reduction_prev=True, dilation=dilation[1])
+                          C_curr,reduction=False, reduction_prev=True, dilation=dilation[1])
         self.aspp3 = Cell(genotype, in_channels_1, in_channels_2,
-                          32,reduction=False, reduction_prev=True, dilation=dilation[2])
+                          C_curr,reduction=False, reduction_prev=True, dilation=dilation[2])
         self.aspp4 = Cell(genotype, in_channels_1, in_channels_2,
-                          32,reduction=False, reduction_prev=True, dilation=dilation[3])
+                          C_curr,reduction=False, reduction_prev=True, dilation=dilation[3])
         self.avg_pool1 = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Conv2d(in_channels_1, 256, 1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(in_channels_1, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
         self.avg_pool2 = nn.Sequential(
             nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Conv2d(in_channels_2, 256, 1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(in_channels_2, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True))
-        self.conv1 = SepConv(256*3, 256, 1, 1, 0)
+        self.conv1 = SepConv(out_channels*3, out_channels, 1, 1, 0)
         self.dropout = nn.Dropout(0.5)
 
         initialize_weights(self)
@@ -213,7 +214,7 @@ class NASRayNetEval_aspp(nn.Module):
         super(NASRayNetEval_aspp, self).__init__()
         self.encode = mixnet_xl(pretrained=pretrained,
                                 num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
-        self.aspp = ASPP_cell(in_channels_1=128, in_channels_2=320,genotype=genotype, output_stride=16)
+        self.aspp = ASPP_cell(in_channels_1=128, in_channels_2=320,out_channels=256,genotype=genotype, output_stride=16)
         self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
 
         self.low_cell1 = Cell(genotype, 48, 64, 16,reduction=False, reduction_prev=True)
@@ -237,6 +238,50 @@ class NASRayNetEval_aspp(nn.Module):
 
 
         low_feat1 = self.low_cell1( middle_feature[0], middle_feature[1])
+        low_feat2=self.low_cell2(middle_feature[1],low_feat1)
+        low_feat3=self.low_cell3(low_feat1,low_feat2)
+        low_feat4=self.low_cell4(low_feat2,low_feat3)
+        out1 = self.outcell1(decode1, low_feat4)
+        out2 = self.cell1(middle_feature[0],out1)
+        out3= self.cell2(out1,out2)
+        out4= self.cell3(out2,out3)
+        out = self.out(out4)
+        out = self.up4(out)
+        out = torch.softmax(out, 1)
+        return out
+
+
+class NASRayNetEval_aspp_2(nn.Module):
+    "adopt from raynet_v0"
+
+    def __init__(self, pretrained=True, num_classes=3, genotype='ray1',layer=12):
+        super(NASRayNetEval_aspp_2, self).__init__()
+        self.encode = mixnet_xl(pretrained=pretrained,
+                                num_classes=num_classes,head_conv=None)    # 48-96-96 64-48-48 128-24-24 320-12-12
+        self.aspp = ASPP_cell(in_channels_1=128, in_channels_2=320,out_channels=256,genotype=genotype, output_stride=16)
+        self.decode_cell = CellDecode(genotype, 256, 128, 64, expansion_prev=True)
+        self.aspp2= ASPP_cell(in_channels_1=48,in_channels_2=64,out_channels=64,genotype=genotype,output_stride=16)
+        self.low_cell1 = Cell(genotype, 48, 64, 16,reduction=False, reduction_prev=True)
+        self.low_cell2 = Cell(genotype, 64,  64, 16,reduction=False, reduction_prev=False)
+        self.low_cell3 = Cell(genotype, 64, 64, 16,reduction=False, reduction_prev=False)
+        self.low_cell4 = Cell(genotype, 64, 64, 16,reduction=False, reduction_prev=False)
+
+        self.outcell1 = CellDecode( genotype,256, 64, 32,expansion=True, expansion_prev=True)
+        self.cell1 = Cell(genotype, 48, 128, 32,reduction=False, reduction_prev=False)
+        self.cell2 = Cell(genotype, 128, 128, 32,reduction=False, reduction_prev=False)
+        self.cell3 = Cell(genotype, 128, 128, 32,reduction=False, reduction_prev=False)
+
+        self.out = SepConv(128, num_classes, 1, 1, 0)
+        self.up4 = nn.Upsample( scale_factor=4, mode='bilinear', align_corners=True)
+
+    def forward(self, inputs):
+        _, middle_feature = self.encode.forward_features(inputs)
+        aspp = self.aspp(middle_feature[-2],middle_feature[-1])
+
+        decode1 = self.decode_cell(aspp, middle_feature[-2])
+
+        aspp2= self.aspp2(middle_feature[0],middle_feature[1])
+        low_feat1 = self.low_cell1( middle_feature[0], aspp2)
         low_feat2=self.low_cell2(middle_feature[1],low_feat1)
         low_feat3=self.low_cell3(low_feat1,low_feat2)
         low_feat4=self.low_cell4(low_feat2,low_feat3)
