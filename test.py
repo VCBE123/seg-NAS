@@ -89,6 +89,8 @@ def infer(valid_loader, model):
             input_image=cv2.imread(image_path[0])
             # input_image=np.resize(input_image,[384,384])
             target_image=cv2.imread(label_path[0])
+            target_image[target_image==1]=128
+            target_image[target_image==2]=255
             # target_image=np.resize(target_image,[384,384])
             segmap=np.concatenate([input_image[:,:,0],target_image[:,:,0],segmap],1)
             cv2.imwrite('logs/fig/{}.png'.format(count), segmap)
