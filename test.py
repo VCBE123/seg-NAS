@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEvalDense, ray2, RayNet_v0, ray3
+from nas import NASRayNetEval_aspp, ray2, RayNet_v0, ray3
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle, get_hd
 import multiprocessing

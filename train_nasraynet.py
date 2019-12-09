@@ -31,7 +31,7 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='nasray_ray2_ASPP_Cell_kernel')
+    parser.add_argument('--arch', default='nasray_ray2_ASPP_Cell_2')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
@@ -68,7 +68,7 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    model = NASRayNetEval_aspp(genotype=ray2)
+    model = NASRayNetEval_aspp_2(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
