@@ -10,8 +10,9 @@ from tensorboardX import SummaryWriter
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+
 import numpy as np
-from nas import NASRayNetEval, WeightDiceLoss, ray2,NASRayNetEval_aspp
+from nas import NASRayNetEval, WeightDiceLoss, ray2, ray3,NASRayNetEval_aspp_base,NASRayNetEval_aspp_base
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -20,7 +21,7 @@ from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_c
 
 def get_parser():
     "parser argument"
-    parser = argparse.ArgumentParser(description='train ray')
+    parser = argparse.ArgumentParser(description='train unet')
     parser.add_argument('--workers', type=int, default=32)
     parser.add_argument('--batch_size', type=int, default=24)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
@@ -30,12 +31,12 @@ def get_parser():
     parser.add_argument('--epochs', type=int, default=25)
     parser.add_argument('--save', type=str, default='exp2')
     parser.add_argument('--seed', default=0)
-    parser.add_argument('--arch', default='search_v2')
+    parser.add_argument('--arch', default='nasray_ray2_ASPP_Cell')
     parser.add_argument('--lr_scheduler', default='step')
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='0,1,5')
+    parser.add_argument('--gpus', default='1,2,3')
     return parser.parse_args()
 
 
@@ -67,29 +68,28 @@ def main():
     logging.info("args=%s", ARGS)
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
-    # model = NASRayNetEval_v0(genotype=ray2)
-    model = NASRayNetEval_aspp(genotype=ray2)
+    model = NASRayNetEval_aspp_base(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
     logging.info("params size = %f m", count_parameters(model))
 
-    optimizer=torch.optim.SGD(model.parameters(),ARGS.learning_rate,momentum=ARGS.momentum,weight_decay=ARGS.weight_decay)
+    optimizer = torch.optim.SGD(model.parameters(
+    ), ARGS.learning_rate, momentum=ARGS.momentum, weight_decay=ARGS.weight_decay)
 
+    # criterion = torch.nn.BCELoss().cuda()
     criterion = WeightDiceLoss().cuda()
-    scheduler=torch.optim.lr_scheduler.StepLR(optimizer,step_size=10)
-    train_loader, val_loader = get_follicle( ARGS.batch_size, 8, train_aug=False)
+    train_loader, val_loader = get_follicle(ARGS.batch_size, 8, train_aug=False)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
     best_dice = 0
-    for epoch in range(ARGS.epochs):
-        current_lr= scheduler.get_lr()[0]
 
-        logging.info("epoch: %d lr_for encoder %e lr_for decoder %e",
-                     epoch, current_lr_encoder, current_lr_decoder)
+    for epoch in range(ARGS.epochs):
+        current_lr = scheduler.get_lr()[0]
+        logging.info("epoch: %d lr %e", epoch, current_lr)
         epoch_start = time.time()
         train_loss = train(
-            train_loader, model, criterion, multop)
-        lr_scheduler_decoder.step()
-        lr_scheduler_encoder.step()
+            train_loader, model, criterion, optimizer)
+
         WRITER.add_scalars('loss', {'train_loss': train_loss}, epoch)
         logging.info("train_loss: %f", train_loss)
 
@@ -107,6 +107,7 @@ def main():
 
         epoch_duration = time.time()-epoch_start
         logging.info("epoch time: %ds.", epoch_duration)
+        scheduler.step()
 
         is_best = False
         if valid_dice_ovary > best_dice:
@@ -118,7 +119,7 @@ def main():
             finally:
                 pass
         save_checkpoint({'epoch': epoch+1, 'state_dict': model.state_dict(),
-                         'best_dice': best_dice, 'optimizer': optimizer_encoder.state_dict()}, is_best, ARGS.save)
+                         'best_dice': best_dice, 'optimizer': optimizer.state_dict()}, is_best, ARGS.save)
     logging.info("Best finaly ovary dice: %e", best_dice)
 
 
@@ -134,7 +135,7 @@ def train(train_loader, model, criterion, optimizer):
         target = target.cuda(non_blocking=True)
         inputs = inputs.cuda(non_blocking=True)
         b_start = time.time()
-        logits= model(inputs)
+        logits = model(inputs)
         loss = criterion(logits, target)
         optimizer.zero_grad()
         loss.backward()
@@ -167,7 +168,7 @@ def infer(valid_loader, model, criterion):
         inputs = inputs.cuda()
         targets = targets.cuda()
         with torch.no_grad():
-            logits= model(inputs)
+            logits = model(inputs)
             loss = criterion(logits, targets)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
