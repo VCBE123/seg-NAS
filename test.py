@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
 import numpy as np
-from nas import NASRayNetEval_aspp, ray2, RayNet_v0, ray3
+from nas import NASRayNetEval_aspp_base, ray2, RayNet_v0, ray3
 from dataloader import get_follicle
 from utils import AverageMeter, get_dice_ovary, get_dice_follicle, get_hd
 import multiprocessing
@@ -26,7 +26,7 @@ def get_parser():
     parser.add_argument('--arch', default='nas_ray')
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='3')
+    parser.add_argument('--gpus', default='0')
     return parser.parse_args()
 
 
@@ -43,7 +43,7 @@ def main():
     torch.cuda.manual_seed(ARGS.seed)
 
     # model = NASRayNetEval(genotype=ray2)
-    model = NASRayNetEvalDense(genotype=ray2)
+    model = NASRayNetEval_aspp_base(genotype=ray2)
     model = nn.DataParallel(model)
     model = model.cuda()
 
@@ -51,7 +51,7 @@ def main():
     model.load_state_dict(state_dict['state_dict'])
     model = model.module
 
-    _, val_loader = get_follicle(ARGS)
+    _, val_loader = get_follicle(1,1,return_path=True)
     epoch_start = time.time()
     valid_dice_follicle, valid_dice_ovary, valid_hd = infer(val_loader, model)
     epoch_duration = time.time()-epoch_start
@@ -71,27 +71,32 @@ def infer(valid_loader, model):
     model.eval()
     print(model.training)
     count = 0
-    for inputs, targets in tqdm.tqdm(valid_loader):
+    for inputs, targets,image_path,label_path in tqdm.tqdm(valid_loader):
         inputs = inputs.cuda()
         targets = targets.cuda()
         with torch.no_grad():
             logits = model(inputs)
         dice_follicle = get_dice_follicle(logits, targets)
         dice_ovary = get_dice_ovary(logits, targets)
-        hd = get_hd(logits, targets)
-        save_mask = False
+
+        # hd = get_hd(logits, targets)
+        save_mask= True
         if save_mask:
             pred = logits.cpu().numpy()
             segmap = np.argmax(pred.squeeze(), axis=0)
             segmap[segmap == 1] = 128
             segmap[segmap == 2] = 255
-
+            input_image=cv2.imread(image_path[0])
+            # input_image=np.resize(input_image,[384,384])
+            target_image=cv2.imread(label_path[0])
+            # target_image=np.resize(target_image,[384,384])
+            segmap=np.concatenate([input_image[:,:,0],target_image[:,:,0],segmap],1)
             cv2.imwrite('logs/fig/{}.png'.format(count), segmap)
         count += 1
         batch_size = inputs.size(0)
         dice_follicle_meter.update(dice_follicle, batch_size)
         dice_ovary_meter.update(dice_ovary, batch_size)
-        hd_meter.update(hd, batch_size)
+        hd_meter.update(0, batch_size)
 
     return dice_follicle_meter.avg, dice_ovary_meter.avg, hd_meter.avg
 
