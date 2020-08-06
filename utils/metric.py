@@ -124,7 +124,7 @@ def check_size(eval_segm, gt_segm):
     if (h_e != h_g) or (w_e != w_g):
         raise EvalSegErr("DiffDim: Different dimensions of matrices!")
 
-def get_dice_follicle(pred, mask):
+def get_dice_follicle(pred, mask,eval=False):
     '''
     calculate dice coefficient of follicle
     :param pred: tensor
@@ -149,10 +149,12 @@ def get_dice_follicle(pred, mask):
         jc+=intersection/(iflaten.sum()+tflaten.sum()-intersection+1e-6)
 
 
-    return dice/mask.shape[0],jc/mask.shape[0]
+    if eval:
+        return dice/mask.shape[0],jc/mask.shape[0]
+    return dice/mask.shape[0]
 
 
-def get_dice_ovary(pred, mask):
+def get_dice_ovary(pred, mask, eval=False):
     '''
     calculate dice coefficient of ovary
     :param pred: tensor
@@ -175,7 +177,9 @@ def get_dice_ovary(pred, mask):
         dice += (2. * intersection) / (iflaten.sum() + tflaten.sum() + 1e-6)
 
         jc+=intersection/( iflaten.sum()+tflaten.sum()-intersection+1e-6)
-    return dice/mask.shape[0], jc/mask.shape[0]
+    if eval:
+        return dice/mask.shape[0], jc/mask.shape[0]
+    return dice/mask.shape[0]
 
 
 def get_hd(pred, mask):

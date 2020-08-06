@@ -84,8 +84,8 @@ def infer(valid_loader, model):
         targets = targets.cuda()
         with torch.no_grad():
             logits = model(inputs)
-        dice_follicle,jc_follicle = get_dice_follicle(logits, targets)
-        dice_ovary, jc_ovary = get_dice_ovary(logits, targets)
+        dice_follicle,jc_follicle = get_dice_follicle(logits, targets,eval=True)
+        dice_ovary, jc_ovary = get_dice_ovary(logits, targets,eval=True)
 
         # hd = get_hd(logits, targets)
         hd_ovary,hd_follicle, asd_ovary,asd_follicle=hd95(logits,targets)
@@ -110,8 +110,11 @@ def infer(valid_loader, model):
         dice_follicle_meter.update(dice_follicle, batch_size)
         dice_ovary_meter.update(dice_ovary, batch_size)
         hd_meter_ovary.update(hd_ovary, batch_size)
-        hd_meter_follicle.update(hd_follicle, batch_size)
-        asd_meter_follicle.update(asd_follicle, batch_size)
+        if not hd_follicle == np.inf:
+            hd_meter_follicle.update(hd_follicle, batch_size)
+
+        if not asd_follicle == np.inf:
+            asd_meter_follicle.update(asd_follicle, batch_size)
         asd_meter_ovary.update(asd_ovary, batch_size)
 
         jc_meter_ovary.update(jc_ovary,batch_size)
