@@ -13,7 +13,7 @@ import torch.backends.cudnn as cudnn
 
 import numpy as np
 # from nas import Unet, WeightDiceLoss
-from nas import deeplab3, WeightDiceLoss
+from nas import deeplab3, WeightDiceLoss,RayNet_v0
 from dataloader import get_follicle
 from utils import AverageMeter, create_exp_dir, count_parameters, notice, save_checkpoint, get_dice_follicle, get_dice_ovary
 # import multiprocessing
@@ -37,7 +37,7 @@ def get_parser():
     parser.add_argument('--grad_clip', type=float, default=5.)
     parser.add_argument('--classes', default=3)
     parser.add_argument('--debug', default='')
-    parser.add_argument('--gpus', default='3,4,5')
+    parser.add_argument('--gpus', default='0,1,7')
     return parser.parse_args()
 
 
@@ -70,7 +70,8 @@ def main():
     num_gpus = torch.cuda.device_count()
     logging.info("using gpus: %d", num_gpus)
     # model = Unet(3, 3)
-    model = deeplab3.DeepLab(num_classes=3)
+    model=RayNet_v0()
+    # model = deeplab3.DeepLab(num_classes=3)
     model = nn.DataParallel(model)
     model = model.cuda()
 

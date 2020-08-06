@@ -250,9 +250,10 @@ class RayNet_v0(nn.Module):
 
     def __init__(self, encode='mixnet_xl', pretrained=True, num_classes=3):
         super(RayNet_v0, self).__init__()
-        self.encode = timm.create_model(
-            encode, pretrained=pretrained, num_classes=num_classes)
-        self.aspp = ASSP(in_channels=1536, output_stride=8)
+        # self.encode = timm.create_model(
+            # encode, pretrained=pretrained, num_classes=num_classes)
+        self.encode=mixnet_xl(num_classes=3)
+        self.aspp = ASPP(in_channels=1536, output_stride=8)
         self.low_conv = ConvBlock(48, 256, 1, 1, 0)
         self.up8 = nn.Upsample(
             scale_factor=8, mode='bilinear', align_corners=True)
