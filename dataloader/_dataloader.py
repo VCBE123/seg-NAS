@@ -38,7 +38,7 @@ class FollicleDataset(Dataset):
         return image, label
 
 
-def get_follicle(batch_size, workers, train_aug=False, test_aug=False,return_path=False):
+def get_follicle(batch_size, workers=4, train_aug=False, test_aug=False,return_path=False):
     "return trainloader,testloader"
     train_trans = ImgAugTrans(crop_size=384, aug=train_aug)
     test_trans = ImgAugTrans(crop_size=384, aug=test_aug)
